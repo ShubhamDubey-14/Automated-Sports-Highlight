@@ -1,0 +1,15 @@
+flask==2.3.3
+flask-cors==4.0.0
+flask-login==0.6.2
+flask-sqlalchemy==3.0.5
+flask-bcrypt==1.0.1
+opencv-python==4.8.1.78
+numpy==1.24.3
+scipy==1.11.1
+librosa==0.10.1
+moviepy==1.0.3
+scikit-learn==1.3.0
+pillow==10.0.0
+werkzeug==2.3.7
+python-dotenv==1.0.0
+gunicorn==21.2.0

@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Highlights Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .processing-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .upload-area {
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: linear-gradient(145deg, #eff6ff, #dbeafe);
+            transform: scale(1.02);
+        }
+        
+        .upload-area.drag-over {
+            border-color: #1d4ed8;
+            background: linear-gradient(145deg, #dbeafe, #bfdbfe);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .highlight-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .highlight-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .score-badge {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        
+        .trigger-tag {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 1px solid #bfdbfe;
+            transition: all 0.2s ease;
+        }
+        
+        .trigger-tag:hover {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            animation: progressFlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes progressFlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .icon-glow {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+        }
+        
+        .section-fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .video-container {
+            background: linear-gradient(145deg, #000000, #1a1a1a);
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 4px solid #3b82f6;
+        }
+        
+        /* Enhanced Video Preview Styles */
+        .video-preview-container {
+            position: relative;
+            background: linear-gradient(145deg, #000000, #1a1a1a);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .video-preview-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 1rem;
+        }
+        
+        .video-controls-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 1rem;
+            border-radius: 0 0 1rem 1rem;
+        }
+        
+        .highlight-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .highlight-preview-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+            transform: scale(1.1);
+        }
+        
+        /* Enhanced Button Styles */
+        .btn-enhanced {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .btn-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-enhanced:hover::before {
+            left: 100%;
+        }
+        
+        /* Improved Card Animations */
+        .card-enhanced {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, box-shadow;
+        }
+        
+        .card-enhanced:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        /* Loading Animation Improvements */
+        .loading-dots {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+        
+        .loading-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: currentColor;
+            border-radius: 50%;
+            animation: loadingPulse 1.4s ease-in-out infinite both;
+        }
+        
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dot:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes loadingPulse {
+            0%, 80%, 100% { 
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Enhanced Progress Bar */
+        .progress-enhanced {
+            background: linear-gradient(90deg, #e5e7eb, #d1d5db);
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #7c3aed);
+            background-size: 200% 100%;
+            animation: progressShimmer 2s ease-in-out infinite;
+            border-radius: 9999px;
+        }
+        
+        @keyframes progressShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Improved Highlight Cards */
+        .highlight-card-enhanced {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .highlight-card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #7c3aed);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .highlight-card-enhanced:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .highlight-card-enhanced:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #3b82f6;
+        }
+        
+        /* Video Thumbnail Styles */
+        .video-thumbnail {
+            position: relative;
+            background: linear-gradient(145deg, #1f2937, #111827);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .video-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .play-button-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .play-button-overlay:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        /* Responsive Improvements */
+        @media (max-width: 768px) {
+            .highlight-preview-content {
+                margin: 1rem;
+                padding: 1rem;
+                max-width: calc(100vw - 2rem);
+            }
+            
+            .card-enhanced:hover {
+                transform: translateY(-4px) scale(1.01);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-white bg-opacity-80" style="background-image: url('data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23f1f5f9\' fill-opacity=\'0.4\' fill-rule=\'evenodd\'%3E%3Cpath d=\'m0 40l40-40h-40z\'/%3E%3Cpath d=\'m40 40v-40h-40z\' fill=\'%23e2e8f0\' fill-opacity=\'0.2\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+    
+    <!-- Authentication Modal -->
+    <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <!-- Sign In Form -->
+            <div id="signInForm" class="p-8">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                    <p class="text-gray-600">Sign in to access your highlight history</p>
+                </div>
+                
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                        <input type="text" id="loginUsername" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Enter your username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="w-full btn-primary btn-enhanced text-white py-3 rounded-xl font-semibold text-lg">
+                        Sign In
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-gray-600">Don't have an account? 
+                        <button onclick="showSignUp()" class="text-blue-600 font-semibold hover:text-blue-700">Sign Up</button>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Sign Up Form -->
+            <div id="signUpForm" class="p-8 hidden">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
+                    <p class="text-gray-600">Join us to save your highlight history</p>
+                </div>
+                
+                <form id="registerForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                        <input type="text" id="registerUsername" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Choose a username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                        <input type="email" id="registerEmail" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Enter your email">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                        <input type="password" id="registerPassword" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Create a password">
+                    </div>
+                    <button type="submit" class="w-full btn-success btn-enhanced text-white py-3 rounded-xl font-semibold text-lg">
+                        Create Account
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-gray-600">Already have an account? 
+                        <button onclick="showSignIn()" class="text-blue-600 font-semibold hover:text-blue-700">Sign In</button>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Close Button -->
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all">
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="relative z-20 bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold text-gray-800">AI Sports Highlights</span>
+                </div>
+                
+                <!-- User Menu -->
+                <div id="userMenu" class="flex items-center gap-4">
+                    <!-- Not Logged In -->
+                    <div id="notLoggedIn" class="flex items-center gap-3">
+                        <button onclick="openAuthModal()" class="btn-primary btn-enhanced text-white px-6 py-2 rounded-lg font-medium text-sm">
+                            Sign In
+                        </button>
+                    </div>
+                    
+                    <!-- Logged In -->
+                    <div id="loggedIn" class="hidden flex items-center gap-4">
+                        <button onclick="showHistory()" class="text-gray-600 hover:text-blue-600 font-medium text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            History
+                        </button>
+                        <div class="relative">
+                            <button onclick="toggleUserDropdown()" class="flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-sm">
+                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <span id="usernameDisplay"></span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                                <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Your Highlight History</h2>
+                    </div>
+                    <button onclick="closeHistoryModal()" class="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div id="historyContent" class="space-y-4">
+                    <!-- History items will be loaded here -->
+                </div>
+                
+                <div id="historyEmpty" class="hidden text-center py-12">
+                    <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-600 mb-2">No highlights yet</h3>
+                    <p class="text-gray-500">Upload and process your first sports video to see it here!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative z-10 min-h-screen p-4">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-16 section-fade-in">
+                <div class="relative mb-8">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl blur-3xl opacity-20 animate-pulse"></div>
+                    <div class="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8 shadow-2xl">
+                        <h1 class="text-6xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent mb-4 tracking-tight">
+                            AI Sports Highlights
+                        </h1>
+                        <div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full mb-6"></div>
+                        <p class="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed font-medium">
+                            Transform your sports footage into <span class="text-blue-600 font-semibold">compelling highlights</span> using cutting-edge AI computer vision and intelligent audio analysis
+                        </p>
+                        <div class="flex items-center justify-center gap-8 mt-8 text-sm text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span>AI-Powered</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>Real-time Processing</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                <span>Professional Quality</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8">
+                <!-- Upload & Settings Panel -->
+                <div class="lg:col-span-4 space-y-8">
+                    <!-- Upload Section -->
+                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced border border-white/20">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">Upload Video</h2>
+                                <p class="text-sm text-gray-500">Start your AI analysis</p>
+                            </div>
+                        </div>
+                        
+                        <div 
+                            id="uploadArea"
+                            class="upload-area rounded-xl p-10 text-center cursor-pointer relative overflow-hidden"
+                        >
+                            <div class="relative z-10">
+                                <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">Drop your sports video here</h3>
+                                <p class="text-gray-600 mb-6">or click to browse files</p>
+                                <div class="flex items-center justify-center gap-4 text-sm text-gray-500 mb-4">
+                                    <div class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>MP4, MOV, AVI</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <span>Up to 500MB</span>
+                                    </div>
+                                </div>
+                                <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                                    </svg>
+                                    AI-Ready Processing
+                                </div>
+                            </div>
+                            <input
+                                type="file"
+                                id="videoInput"
+                                accept="video/*"
+                                class="hidden"
+                            />
+                        </div>
+
+                        <div id="uploadedInfo" class="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hidden slide-in">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <span class="text-green-600 text-lg">✅</span>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-green-800" id="fileName"></p>
+                                    <p class="text-sm text-green-600" id="fileSize"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Section -->
+                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced border border-white/20">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">AI Settings</h2>
+                                <p class="text-sm text-gray-500">Customize your analysis</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Sport Type
+                                </label>
+                                <div class="relative">
+                                    <select id="sportSelect" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white shadow-sm">
+                                        <option value="soccer">⚽ Soccer/Football</option>
+                                        <option value="basketball">🏀 Basketball</option>
+                                        <option value="tennis">🎾 Tennis</option>
+                                        <option value="cricket">🏏 Cricket</option>
+                                        <option value="general">🏃‍♂️ General Sports</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Highlight Duration
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        type="range"
+                                        id="lengthSlider"
+                                        min="10"
+                                        max="60"
+                                        value="30"
+                                        class="w-full h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div class="flex justify-between text-xs text-gray-500 mt-2">
+                                        <span>10s</span>
+                                        <span>60s</span>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <span class="text-lg font-bold text-blue-600" id="lengthValue">30 seconds</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                    Detection Sensitivity
+                                </label>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <button class="sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-600 hover:bg-green-50 transition-all flex items-center justify-center gap-2" data-level="low">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        Low
+                                    </button>
+                                    <button class="sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2" data-level="medium">
+                                        <div class="w-2 h-2 bg-yellow-300 rounded-full"></div>
+                                        Medium
+                                    </button>
+                                    <button class="sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2" data-level="high">
+                                        <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                        High
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="lg:col-span-8 space-y-8">
+                    <!-- Video Preview -->
+                    <div id="videoPreview" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                            <span class="text-2xl">🎬</span>
+                            Video Preview
+                        </h2>
+                        <div class="video-preview-container rounded-2xl aspect-video flex items-center justify-center overflow-hidden">
+                            <video
+                                id="previewVideo"
+                                controls
+                                class="w-full h-full rounded-2xl"
+                                preload="metadata"
+                            >
+                                Your browser does not support the video tag.
+                            </video>
+                            <div class="video-controls-overlay hidden" id="videoControls">
+                                <div class="flex items-center justify-between text-white">
+                                    <span class="text-sm font-medium" id="currentTime">0:00</span>
+                                    <span class="text-sm font-medium" id="totalTime">0:00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 flex gap-4">
+                            <button
+                                id="generateBtn"
+                                class="btn-primary btn-enhanced flex items-center gap-3 text-white px-8 py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span class="text-xl">⚡</span>
+                                Generate Highlights
+                            </button>
+                            <button id="downloadBtn" class="btn-success btn-enhanced flex items-center gap-3 text-white px-6 py-4 rounded-xl font-semibold hidden">
+                                <span class="text-lg">💾</span>
+                                Download Highlights
+                            </button>
+                            <button class="flex items-center gap-3 bg-gray-100 text-gray-700 px-6 py-4 rounded-xl font-medium hover:bg-gray-200 transition-all">
+                                <span class="text-lg">🔧</span>
+                                Advanced Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Processing Status -->
+                    <div id="processingStatus" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                            <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full processing-spinner"></div>
+                            AI Analysis in Progress
+                        </h2>
+                        
+                        <div class="space-y-6">
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-xl">
+                                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                        <span class="text-2xl">👁️</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-blue-800">Computer Vision</h3>
+                                        <p class="text-sm text-blue-600">Motion & Object Detection</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 p-4 bg-green-50 rounded-xl">
+                                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                        <span class="text-2xl">🔊</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-green-800">Audio Analysis</h3>
+                                        <p class="text-sm text-green-600">Volume & Frequency</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 p-4 bg-purple-50 rounded-xl">
+                                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                        <span class="text-2xl">⏰</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-purple-800">Pattern Recognition</h3>
+                                        <p class="text-sm text-purple-600">Temporal Analysis</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
+                                <div class="flex items-center gap-4 mb-3">
+                                    <div class="pulse-dot w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    <span class="font-semibold text-gray-700">Current Stage:</span>
+                                </div>
+                                <p class="text-lg text-gray-800" id="processingStage">Initializing AI models...</p>
+                                <div class="mt-4 h-3 bg-gray-200 rounded-full overflow-hidden progress-enhanced">
+                                    <div class="progress-bar h-full rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compiled Highlight Video -->
+                    <div id="compiledVideoSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                            <span class="text-2xl">🎬</span>
+                            Compiled Highlight Video
+                        </h2>
+                        <div class="video-preview-container rounded-2xl aspect-video mb-6">
+                            <video id="compiledVideo" controls class="w-full h-full rounded-2xl" preload="metadata">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-600">
+                                <span class="font-medium">Total Duration:</span> <span id="compiledDuration">0:00</span>
+                                <span class="mx-2">•</span>
+                                <span class="font-medium">Highlights:</span> <span id="compiledHighlightCount">0</span>
+                            </div>
+                            <button id="downloadCompiledBtn" class="btn-success btn-enhanced flex items-center gap-3 text-white px-6 py-3 rounded-xl font-semibold">
+                                <span class="text-lg">💾</span>
+                                Download Video
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Generated Highlights -->
+                    <div id="highlightsSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                        <div class="flex items-center justify-between mb-8">
+                            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                                <span class="text-2xl">✨</span>
+                                Individual Highlights (<span id="highlightCount" class="text-blue-600">0</span>)
+                            </h2>
+                            <button class="btn-primary btn-enhanced flex items-center gap-3 text-white px-6 py-3 rounded-xl font-semibold">
+                                <span class="text-lg">👁️</span>
+                                View All
+                            </button>
+                        </div>
+                        
+                        <div id="highlightsList" class="space-y-6">
+                            <!-- Highlights will be inserted here -->
+                        </div>
+
+                        <div class="mt-8 stats-card rounded-xl p-6">
+                            <h3 class="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
+                                <span>📊</span>
+                                Analysis Summary
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-blue-600 mb-1">47</div>
+                                    <div class="text-sm text-blue-700 font-medium">Motion Events</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-green-600 mb-1">23</div>
+                                    <div class="text-sm text-green-700 font-medium">Audio Peaks</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-purple-600 mb-1">89%</div>
+                                    <div class="text-sm text-purple-700 font-medium">Ball Tracking</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Getting Started Guide -->
+                    <div id="gettingStarted" class="glass-effect rounded-2xl shadow-2xl p-8 section-fade-in border border-white/20">
+                        <div class="text-center mb-8">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">How Our AI Works</h2>
+                            <p class="text-gray-600">Cutting-edge technology behind intelligent highlight detection</p>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div class="highlight-card-enhanced rounded-2xl p-8 border border-gray-100">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">Computer Vision</h3>
+                                        <p class="text-sm text-blue-600 font-medium">Motion & Object Detection</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 leading-relaxed">
+                                    Advanced motion detection and object tracking algorithms identify high-action moments by analyzing player movements, ball trajectory, and scene dynamics in real-time.
+                                </p>
+                                <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <span>Real-time analysis</span>
+                                </div>
+                            </div>
+                            <div class="highlight-card-enhanced rounded-2xl p-8 border border-gray-100">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800">Audio Intelligence</h3>
+                                        <p class="text-sm text-green-600 font-medium">Sound & Frequency Analysis</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600 leading-relaxed">
+                                    Sophisticated audio analysis detects crowd reactions, commentary excitement, and volume spikes to identify emotionally significant moments that correlate with highlights.
+                                </p>
+                                <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Emotion detection</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedVideo = null;
+        let currentSensitivity = 'medium';
+        let currentProgress = 0;
+        let currentUser = null;
+
+        // Authentication Functions
+        function openAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+            showSignIn();
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function showSignIn() {
+            document.getElementById('signInForm').classList.remove('hidden');
+            document.getElementById('signUpForm').classList.add('hidden');
+        }
+
+        function showSignUp() {
+            document.getElementById('signInForm').classList.add('hidden');
+            document.getElementById('signUpForm').classList.remove('hidden');
+        }
+
+        function toggleUserDropdown() {
+            document.getElementById('userDropdown').classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const button = event.target.closest('button[onclick="toggleUserDropdown()"]');
+            if (!button && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Login Form Handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = data.user;
+                    updateUserInterface();
+                    closeAuthModal();
+                    showSuccessMessage('Welcome back, ' + data.user.username + '!');
+                } else {
+                    showErrorMessage(data.error);
+                }
+            } catch (error) {
+                showErrorMessage('Login failed. Please try again.');
+            }
+        });
+
+        // Register Form Handler
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = data.user;
+                    updateUserInterface();
+                    closeAuthModal();
+                    showSuccessMessage('Account created successfully! Welcome, ' + data.user.username + '!');
+                } else {
+                    showErrorMessage(data.error);
+                }
+            } catch (error) {
+                showErrorMessage('Registration failed. Please try again.');
+            }
+        });
+
+        // Logout Function
+        async function logout() {
+            try {
+                await fetch('http://localhost:5000/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                currentUser = null;
+                updateUserInterface();
+                showSuccessMessage('Logged out successfully!');
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Update UI based on login status
+        function updateUserInterface() {
+            const notLoggedIn = document.getElementById('notLoggedIn');
+            const loggedIn = document.getElementById('loggedIn');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+
+            if (currentUser) {
+                notLoggedIn.classList.add('hidden');
+                loggedIn.classList.remove('hidden');
+                usernameDisplay.textContent = currentUser.username;
+            } else {
+                notLoggedIn.classList.remove('hidden');
+                loggedIn.classList.add('hidden');
+            }
+        }
+
+        // History Functions
+        function showHistory() {
+            document.getElementById('historyModal').classList.remove('hidden');
+            loadUserHistory();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        async function loadUserHistory() {
+            try {
+                const response = await fetch('http://localhost:5000/api/history', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayHistory(data.history);
+                } else {
+                    showErrorMessage('Failed to load history');
+                }
+            } catch (error) {
+                showErrorMessage('Failed to load history');
+            }
+        }
+
+        function displayHistory(history) {
+            const historyContent = document.getElementById('historyContent');
+            const historyEmpty = document.getElementById('historyEmpty');
+
+            if (history.length === 0) {
+                historyContent.classList.add('hidden');
+                historyEmpty.classList.remove('hidden');
+                return;
+            }
+
+            historyContent.classList.remove('hidden');
+            historyEmpty.classList.add('hidden');
+
+            historyContent.innerHTML = history.map(item => `
+                <div class="highlight-card-enhanced rounded-xl p-6 border border-gray-200">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">${item.original_filename}</h3>
+                                    <p class="text-sm text-gray-500">${new Date(item.created_at).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Sport:</span>
+                                    <span class="font-medium ml-1">${item.sport_type}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Highlights:</span>
+                                    <span class="font-medium ml-1">${item.highlight_count}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Duration:</span>
+                                    <span class="font-medium ml-1">${item.duration.toFixed(1)}s</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Sensitivity:</span>
+                                    <span class="font-medium ml-1">${item.sensitivity}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${item.highlight_filename ? `
+                            <button onclick="playHistoryVideo('${item.highlight_filename}')" class="btn-primary btn-enhanced text-white px-4 py-2 rounded-lg text-sm font-medium ml-4">
+                                Play Highlights
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function playHistoryVideo(filename) {
+            const videoUrl = `http://localhost:5000/api/stream-highlights/${filename}`;
+            // You can implement a video player modal here or redirect to the video
+            window.open(videoUrl, '_blank');
+        }
+
+        // Utility Functions
+        function showSuccessMessage(message) {
+            // Create a temporary success notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function showErrorMessage(message) {
+            // Create a temporary error notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // Check if user is already logged in on page load
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('http://localhost:5000/api/user', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    updateUserInterface();
+                }
+            } catch (error) {
+                // User not logged in
+            }
+        }
+
+        // Initialize auth status on page load
+        document.addEventListener('DOMContentLoaded', checkAuthStatus);
+
+        // Upload functionality with drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            uploadArea.classList.add('drag-over');
+        }
+
+        function unhighlight(e) {
+            uploadArea.classList.remove('drag-over');
+        }
+
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        uploadArea.addEventListener('click', () => {
+            document.getElementById('videoInput').click();
+        });
+
+        document.getElementById('videoInput').addEventListener('change', (event) => {
+            handleFiles(event.target.files);
+        });
+
+        function handleFiles(files) {
+            const file = files[0];
+            if (file && file.type.startsWith('video/')) {
+                const videoURL = URL.createObjectURL(file);
+                uploadedVideo = {
+                    file: file,
+                    url: videoURL,
+                    name: file.name,
+                    size: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+                };
+
+                // Update UI with animation
+                document.getElementById('fileName').textContent = uploadedVideo.name;
+                document.getElementById('fileSize').textContent = uploadedVideo.size;
+                document.getElementById('uploadedInfo').classList.remove('hidden');
+                document.getElementById('previewVideo').src = videoURL;
+                document.getElementById('videoPreview').classList.remove('hidden');
+                document.getElementById('gettingStarted').classList.add('hidden');
+                document.getElementById('highlightsSection').classList.add('hidden');
+                
+                // Smooth scroll to preview
+                setTimeout(() => {
+                    document.getElementById('videoPreview').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }, 300);
+            }
+        }
+
+        // Settings functionality
+        document.getElementById('lengthSlider').addEventListener('input', (e) => {
+            document.getElementById('lengthValue').textContent = e.target.value + ' seconds';
+        });
+
+        document.querySelectorAll('.sensitivity-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.sensitivity-btn').forEach(b => {
+                    const level = b.dataset.level;
+                    if (level === 'low') {
+                        b.className = 'sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-600 hover:bg-green-50 transition-all flex items-center justify-center gap-2';
+                    } else if (level === 'high') {
+                        b.className = 'sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2';
+                    } else {
+                        b.className = 'sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2';
+                    }
+                });
+                e.target.className = 'sensitivity-btn px-4 py-3 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2';
+                currentSensitivity = e.target.dataset.level;
+            });
+        });
+
+        // Generate highlights functionality
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            if (!uploadedVideo) return;
+
+            document.getElementById('processingStatus').classList.remove('hidden');
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('generateBtn').innerHTML = '<span class="text-xl">⚡</span> <span class="loading-dots"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></span>';
+
+            const stages = [
+                'Loading video and initializing AI models...',
+                'Analyzing motion patterns and object detection...',
+                'Processing audio signals and frequency analysis...',
+                'Tracking ball movement and player actions...',
+                'Calculating highlight scores and rankings...',
+                'Generating final highlight compilation...'
+            ];
+
+            const progressBar = document.querySelector('.progress-bar');
+
+            try {
+                // Upload video to backend
+                const formData = new FormData();
+                formData.append('video', uploadedVideo.file);
+
+                const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload video');
+                }
+
+                const uploadData = await uploadResponse.json();
+                
+                // Update progress
+                document.getElementById('processingStage').textContent = stages[0];
+                progressBar.style.width = '16%';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Generate highlights
+                const generateResponse = await fetch('http://localhost:5000/api/generate-highlights', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: uploadData.filename,
+                        sport_type: document.getElementById('sportSelect').value,
+                        sensitivity: currentSensitivity,
+                        max_duration: parseInt(document.getElementById('lengthSlider').value)
+                    })
+                });
+
+                if (!generateResponse.ok) {
+                    throw new Error('Failed to generate highlights');
+                }
+
+                const results = await generateResponse.json();
+
+                // Simulate processing stages
+                for (let i = 1; i < stages.length; i++) {
+                    document.getElementById('processingStage').textContent = stages[i];
+                    const progress = ((i + 1) / stages.length) * 100;
+                    progressBar.style.width = progress + '%';
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+
+                // Show results with animation
+                document.getElementById('processingStatus').classList.add('hidden');
+                showHighlights(results);
+                showCompiledVideo(results);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('processingStage').textContent = 'Error: ' + error.message;
+                progressBar.style.width = '100%';
+                progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+                
+                setTimeout(() => {
+                    document.getElementById('processingStatus').classList.add('hidden');
+                    alert('Error generating highlights: ' + error.message);
+                }, 2000);
+            }
+            
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('generateBtn').innerHTML = '<span class="text-xl">⚡</span> Generate Highlights';
+        });
+
+        function showHighlights(results) {
+            const highlights = results.highlights || [];
+            const stats = results.analysis_stats || {};
+
+            const highlightsList = document.getElementById('highlightsList');
+            highlightsList.innerHTML = '';
+
+            if (highlights.length === 0) {
+                highlightsList.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">No Highlights Found</h3>
+                        <p class="text-gray-500">Try adjusting the sensitivity settings or upload a different video.</p>
+                    </div>
+                `;
+            } else {
+                highlights.forEach((highlight, index) => {
+                    const highlightCard = document.createElement('div');
+                    highlightCard.className = 'highlight-card-enhanced rounded-xl p-6 card-enhanced';
+                    highlightCard.style.animationDelay = `${index * 0.1}s`;
+                    
+                    const startTime = formatTime(highlight.start_time);
+                    const duration = highlight.duration.toFixed(1) + 's';
+                    const score = Math.round(highlight.score);
+                    
+                    highlightCard.innerHTML = `
+                        <div class="flex items-start gap-6">
+                            <div class="relative flex-shrink-0">
+                                <div class="video-thumbnail w-32 h-20 flex items-center justify-center shadow-lg">
+                                    <span class="text-white text-2xl">▶️</span>
+                                    <div class="play-button-overlay">
+                                        <span class="text-white text-lg">▶</span>
+                                    </div>
+                                </div>
+                                <div class="score-badge absolute -top-2 -right-2 text-white text-sm font-bold px-3 py-1 rounded-lg">
+                                    ${score}
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-1">Highlight ${index + 1}</h3>
+                                        <p class="text-gray-600 mb-2">Score: ${score.toFixed(1)} | Motion: ${highlight.motion_score.toFixed(1)} | Audio: ${highlight.audio_score.toFixed(2)}</p>
+                                        <p class="text-sm text-gray-500 flex items-center gap-2">
+                                            <span class="font-medium">⏱️ ${startTime}</span>
+                                            <span>•</span>
+                                            <span class="font-medium">⏳ ${duration}</span>
+                                        </p>
+                                    </div>
+                                    <button class="btn-primary btn-enhanced text-white px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform" onclick="previewHighlight(${highlight.start_time}, ${highlight.end_time})">
+                                        Preview
+                                    </button>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    ${highlight.triggers.map(trigger => 
+                                        `<span class="trigger-tag text-xs text-blue-700 px-3 py-1 rounded-full font-medium">${trigger}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    highlightsList.appendChild(highlightCard);
+                });
+            }
+
+            // Update stats
+            document.querySelector('.stats-card .text-3xl.font-bold.text-blue-600').textContent = stats.motion_events || 0;
+            document.querySelector('.stats-card .text-3xl.font-bold.text-green-600').textContent = stats.audio_peaks || 0;
+            document.querySelector('.stats-card .text-3xl.font-bold.text-purple-600').textContent = Math.round(stats.ball_tracking_accuracy || 0) + '%';
+
+            document.getElementById('highlightCount').textContent = highlights.length;
+            document.getElementById('highlightsSection').classList.remove('hidden');
+            
+            // Smooth scroll to results
+            setTimeout(() => {
+                document.getElementById('highlightsSection').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }, 300);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function previewHighlight(startTime, endTime) {
+            const video = document.getElementById('previewVideo');
+            if (video && video.src) {
+                // Create modal for better preview experience
+                showPreviewModal(startTime, endTime);
+            } else {
+                alert('Please upload a video first to preview highlights');
+            }
+        }
+
+        function showPreviewModal(startTime, endTime) {
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'highlight-preview-modal';
+            modal.innerHTML = `
+                <div class="highlight-preview-content">
+                    <button class="modal-close-btn" onclick="closePreviewModal()">
+                        <span class="text-xl">✕</span>
+                    </button>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Highlight Preview</h3>
+                    <div class="video-preview-container aspect-video mb-4">
+                        <video id="modalVideo" controls class="w-full h-full rounded-xl" preload="metadata">
+                            <source src="${uploadedVideo.url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-600">
+                        <span>Start: ${formatTime(startTime)}</span>
+                        <span>End: ${formatTime(endTime)}</span>
+                        <span>Duration: ${(endTime - startTime).toFixed(1)}s</span>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="playHighlightSegment(${startTime}, ${endTime})" 
+                                class="btn-primary btn-enhanced text-white px-4 py-2 rounded-lg text-sm font-medium">
+                            ▶️ Play Segment
+                        </button>
+                        <button onclick="playFullVideo()" 
+                                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200">
+                            🎬 Play Full Video
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Auto-play the segment
+            setTimeout(() => {
+                playHighlightSegment(startTime, endTime);
+            }, 500);
+        }
+
+        function closePreviewModal() {
+            const modal = document.querySelector('.highlight-preview-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function playHighlightSegment(startTime, endTime) {
+            const video = document.getElementById('modalVideo');
+            if (video) {
+                video.currentTime = startTime;
+                video.play();
+                
+                // Stop at end time
+                const stopAtEnd = () => {
+                    if (video.currentTime >= endTime) {
+                        video.pause();
+                        video.removeEventListener('timeupdate', stopAtEnd);
+                    }
+                };
+                video.addEventListener('timeupdate', stopAtEnd);
+            }
+        }
+
+        function playFullVideo() {
+            const video = document.getElementById('modalVideo');
+            if (video) {
+                video.currentTime = 0;
+                video.play();
+            }
+        }
+
+        // Enhanced video time display
+        function updateVideoTimeDisplay() {
+            const video = document.getElementById('previewVideo');
+            const currentTimeEl = document.getElementById('currentTime');
+            const totalTimeEl = document.getElementById('totalTime');
+            
+            if (video && currentTimeEl && totalTimeEl) {
+                currentTimeEl.textContent = formatTime(video.currentTime);
+                totalTimeEl.textContent = formatTime(video.duration);
+            }
+        }
+
+        // Show compiled highlight video
+        function showCompiledVideo(results) {
+            const compiledVideoSection = document.getElementById('compiledVideoSection');
+            const compiledVideo = document.getElementById('compiledVideo');
+            const compiledDuration = document.getElementById('compiledDuration');
+            const compiledHighlightCount = document.getElementById('compiledHighlightCount');
+            const downloadCompiledBtn = document.getElementById('downloadCompiledBtn');
+            
+            if (results.highlight_video_path && results.highlights && results.highlights.length > 0) {
+                // Extract filename from path
+                const filename = results.highlight_video_path.split('/').pop();
+                
+                // Create video URL for streaming (not download)
+                const videoUrl = `http://localhost:5000/api/stream-highlights/${filename}`;
+                
+                // Set video source with proper MIME type
+                compiledVideo.src = videoUrl;
+                compiledVideo.type = 'video/mp4';
+                
+                // Add error handling
+                compiledVideo.onerror = function() {
+                    console.error('Video loading error');
+                    compiledVideo.innerHTML = '<p class="text-red-500 p-4">Error loading highlight video. Please try downloading instead.</p>';
+                };
+                
+                // Add load event
+                compiledVideo.onloadeddata = function() {
+                    console.log('Video loaded successfully');
+                };
+                
+                // Update duration and count
+                compiledDuration.textContent = formatTime(results.total_duration);
+                compiledHighlightCount.textContent = results.total_highlights;
+                
+                // Set up download button
+                downloadCompiledBtn.onclick = () => {
+                    const downloadUrl = `http://localhost:5000/api/download-highlights/${filename}`;
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `highlights_${filename}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                
+                // Show the section
+                compiledVideoSection.classList.remove('hidden');
+                
+                // Smooth scroll to compiled video
+                setTimeout(() => {
+                    compiledVideoSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }, 500);
+            }
+        }
+
+        // Download functionality
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            // This will be handled by the compiled video section
+            const compiledVideoSection = document.getElementById('compiledVideoSection');
+            if (!compiledVideoSection.classList.contains('hidden')) {
+                compiledVideoSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        // Add video event listeners for time display
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('previewVideo');
+            if (video) {
+                video.addEventListener('timeupdate', updateVideoTimeDisplay);
+                video.addEventListener('loadedmetadata', updateVideoTimeDisplay);
+            }
+        });
+    </script>
+</body>
+</html>
