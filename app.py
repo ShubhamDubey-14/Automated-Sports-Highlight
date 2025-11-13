@@ -14,7 +14,11 @@ import tempfile
 import json
 from datetime import datetime
 import uuid
+from waitress import serve 
 
+from flask import Flask, request, jsonify, send_file, session
+from flask_cors import CORS
+# ... (rest of your imports)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sports_highlights.db')
@@ -692,5 +696,11 @@ def health_check():
 
 if __name__ == '__main__':
     with app.app_context():
+        # This will create the database tables if they don't exist
         db.create_all()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    # Use waitress.serve() for production deployment (Windows friendly)
+    print("--- Starting production server with Waitress ---")
+    # Setting host='0.0.0.0' makes it externally accessible on your network
+    # For production, you typically set debug=False, but leaving it True for now to catch any initial errors
+    serve(app, host='0.0.0.0', port=5000)

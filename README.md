@@ -51,6 +51,43 @@ An AI-powered system that automatically generates sports highlights using comput
    - Navigate to `http://localhost:5000` for the API
    - Open `code1.js` in your browser for the frontend
 
+## 🚢 Deployment
+
+### Docker (single container)
+
+1. Build the image:
+   ```bash
+   docker build -t sports-highlights .
+   ```
+
+2. Run it with persistent folders:
+   ```powershell
+   docker run -p 5000:5000 `
+     -e SECRET_KEY=change-me `
+     -e DATABASE_URL=sqlite:///data/sports_highlights.db `
+     -v ${PWD}\uploads:/app/uploads `
+     -v ${PWD}\outputs:/app/outputs `
+     -v ${PWD}\data:/app/data `
+     sports-highlights
+   ```
+   Use `\` line continuations instead of `` ` `` on macOS/Linux.
+
+### Docker Compose (recommended for local + cloud parity)
+
+1. Create the data directories once:
+   ```bash
+   mkdir -p uploads outputs data
+   ```
+
+2. Start the stack:
+   ```bash
+   docker compose up --build
+   ```
+
+3. Visit `http://localhost:5000`. The API and bundled UI are served from the same container.
+
+> **Cloud hosting tip:** On platforms such as Render, Railway, EC2, or DigitalOcean, deploy the same container and attach a persistent volume to `/app/uploads`, `/app/outputs`, and `/app/data`. Set `SECRET_KEY`, and switch `DATABASE_URL` to a managed Postgres instance if you require multi-user durability.
+
 ## 🎯 How It Works
 
 ### 1. Computer Vision Analysis
