@@ -5,10 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sports Highlights Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* Light mode: Clean, Minimalist Slate, Platinum & Slate-blue accents */
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --card-border: rgba(226, 232, 240, 0.8);
+            --card-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.04), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+            
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --nav-border: rgba(226, 232, 240, 0.7);
+            
+            /* Volumetric button shadows */
+            --shadow-primary: #1e40af;
+            --shadow-success: #065f46;
+            --shadow-danger: #991b1b;
+            --shadow-secondary: #94a3b8;
+            --shadow-indigo: #3730a3;
+            
+            /* Collage opacity */
+            --collage-opacity: 0.04;
+        }
+        
+        html.dark {
+            /* Dark mode: High-End Anime/Gaming Obsidian & Indigo/Orange Accents */
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #070910 100%);
+            --card-bg: rgba(20, 24, 37, 0.85);
+            --card-border: rgba(39, 45, 62, 0.65);
+            --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --nav-bg: rgba(11, 15, 25, 0.9);
+            --nav-border: rgba(39, 45, 62, 0.55);
+            
+            /* Volumetric button shadows */
+            --shadow-primary: #1e1b4b;
+            --shadow-success: #022c22;
+            --shadow-danger: #450a0a;
+            --shadow-secondary: #0f172a;
+            --shadow-indigo: #1e1b4b;
+            
+            /* Collage opacity */
+            --collage-opacity: 0.05;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f8fafc !important;
+            background-image: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        html.dark body {
+            background-color: #0b0f19 !important;
+            background-image: linear-gradient(135deg, #0b0f19 0%, #070910 100%) !important;
+        }
+        
+        /* Floating animations & sports background */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .sports-collage-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+            user-select: none;
+            opacity: var(--collage-opacity);
+            transition: opacity 0.3s ease;
+        }
+        
+        .sports-collage-bg svg {
+            mix-blend-mode: overlay !important;
+            filter: opacity(0.04) grayscale(1) !important;
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+        
+        html.dark .sports-collage-bg svg {
+            filter: opacity(0.02) grayscale(1) invert(1) !important;
+            color: #475569 !important;
+        }
+        
+        /* Video element fixes to restore native controls and remove blockers */
+        .video-preview-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain !important;
+            background-color: #000000 !important;
+            border-radius: 1rem;
+            position: relative;
+            z-index: 10;
+            pointer-events: auto !important;
         }
         
         .gradient-bg {
@@ -76,8 +181,9 @@
         
         .glass-effect {
             backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: var(--card-bg) !important;
+            border: 1px solid var(--card-border) !important;
+            box-shadow: var(--card-shadow) !important;
         }
         
         .highlight-card {
@@ -180,7 +286,8 @@
         .video-preview-container video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain !important;
+            background-color: #000000 !important;
             border-radius: 1rem;
         }
         
@@ -200,20 +307,26 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 2000;
             backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            overflow-y: auto;
         }
         
         .highlight-preview-content {
             background: white;
-            border-radius: 1rem;
+            border-radius: 1.5rem;
             padding: 2rem;
-            max-width: 90vw;
+            width: 100%;
+            max-width: 800px;
             max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
             position: relative;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
@@ -239,28 +352,315 @@
             transform: scale(1.1);
         }
         
-        /* Enhanced Button Styles */
-        .btn-enhanced {
+        /* 3D Volumetric Tactical Buttons & Shimmer Glint */
+        .btn-3d-enhanced {
             position: relative;
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.1s ease;
+            transform-style: preserve-3d;
             overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            border: none;
         }
-        
-        .btn-enhanced::before {
+
+        .btn-3d-blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 6px 0 var(--shadow-primary), 0 12px 20px rgba(37, 99, 235, 0.25);
+            color: white !important;
+        }
+        .btn-3d-blue:hover {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 var(--shadow-primary), 0 14px 24px rgba(37, 99, 235, 0.35);
+        }
+        .btn-3d-blue:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--shadow-primary), 0 4px 8px rgba(37, 99, 235, 0.15);
+        }
+        html.dark .btn-3d-blue {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            box-shadow: 0 6px 0 #1e1b4b, 0 12px 20px rgba(79, 70, 229, 0.2);
+        }
+        html.dark .btn-3d-blue:hover {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            box-shadow: 0 8px 0 #1e1b4b, 0 14px 24px rgba(79, 70, 229, 0.3);
+        }
+        html.dark .btn-3d-blue:active {
+            box-shadow: 0 2px 0 #1e1b4b, 0 4px 8px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-3d-green {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 6px 0 var(--shadow-success), 0 12px 20px rgba(16, 185, 129, 0.25);
+            color: white !important;
+        }
+        .btn-3d-green:hover {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 var(--shadow-success), 0 14px 24px rgba(16, 185, 129, 0.35);
+        }
+        .btn-3d-green:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--shadow-success), 0 4px 8px rgba(16, 185, 129, 0.15);
+        }
+        html.dark .btn-3d-green {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 6px 0 #022c22, 0 12px 20px rgba(5, 150, 105, 0.2);
+        }
+        html.dark .btn-3d-green:hover {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 8px 0 #022c22, 0 14px 24px rgba(5, 150, 105, 0.3);
+        }
+        html.dark .btn-3d-green:active {
+            box-shadow: 0 2px 0 #022c22, 0 4px 8px rgba(5, 150, 105, 0.1);
+        }
+
+        .btn-3d-indigo {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            box-shadow: 0 6px 0 var(--shadow-indigo), 0 12px 20px rgba(79, 70, 229, 0.25);
+            color: white !important;
+        }
+        .btn-3d-indigo:hover {
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 var(--shadow-indigo), 0 14px 24px rgba(79, 70, 229, 0.35);
+        }
+        .btn-3d-indigo:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--shadow-indigo), 0 4px 8px rgba(79, 70, 229, 0.15);
+        }
+        html.dark .btn-3d-indigo {
+            background: linear-gradient(135deg, #ff5d00 0%, #d84f00 100%);
+            box-shadow: 0 6px 0 #7c2d12, 0 12px 20px rgba(255, 93, 0, 0.25);
+        }
+        html.dark .btn-3d-indigo:hover {
+            background: linear-gradient(135deg, #ff7e33 0%, #ff5d00 100%);
+            box-shadow: 0 8px 0 #7c2d12, 0 14px 24px rgba(255, 93, 0, 0.35);
+        }
+        html.dark .btn-3d-indigo:active {
+            box-shadow: 0 2px 0 #7c2d12, 0 4px 8px rgba(255, 93, 0, 0.15);
+        }
+
+        .btn-3d-slate {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            box-shadow: 0 6px 0 var(--shadow-secondary), 0 12px 20px rgba(148, 163, 184, 0.25);
+            color: #334155 !important;
+        }
+        .btn-3d-slate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 var(--shadow-secondary), 0 14px 24px rgba(148, 163, 184, 0.35);
+        }
+        .btn-3d-slate:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--shadow-secondary), 0 4px 8px rgba(148, 163, 184, 0.15);
+        }
+        html.dark .btn-3d-slate {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            box-shadow: 0 6px 0 #030712, 0 12px 20px rgba(0, 0, 0, 0.4);
+            color: #f1f5f9 !important;
+        }
+        html.dark .btn-3d-slate:hover {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            box-shadow: 0 8px 0 #030712, 0 14px 24px rgba(0, 0, 0, 0.5);
+        }
+        html.dark .btn-3d-slate:active {
+            box-shadow: 0 2px 0 #030712, 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Diagonal sweep glint */
+        .btn-3d-enhanced::after {
             content: '';
             position: absolute;
             top: 0;
-            left: -100%;
-            width: 100%;
+            left: -150%;
+            width: 50%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-20deg);
+            pointer-events: none;
+        }
+        .btn-3d-enhanced:hover::after {
+            left: 150%;
+            transition: left 0.8s ease-in-out;
+        }
+
+        /* Dark Mode Overrides & Fallbacks */
+        html.dark .text-gray-800, html.dark .text-slate-800, html.dark .text-gray-900, html.dark h1, html.dark h2, html.dark h3, html.dark .font-bold.text-indigo-950, html.dark .font-bold.text-emerald-950 {
+            color: #f8fafc !important;
+        }
+        html.dark .text-gray-700, html.dark .text-gray-600, html.dark .text-slate-700, html.dark p, html.dark .text-gray-500.mt-2 span {
+            color: #cbd5e1 !important;
+        }
+        html.dark .text-gray-500, html.dark .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+        html.dark select, html.dark input[type="text"], html.dark input[type="password"], html.dark input[type="email"] {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+        html.dark .bg-blue-50, html.dark .bg-indigo-50, html.dark .bg-gradient-to-br.from-indigo-50 {
+            background: rgba(30, 41, 59, 0.4) !important;
+            border-color: #334155 !important;
+        }
+        html.dark .bg-green-50, html.dark .bg-emerald-50, html.dark .bg-gradient-to-br.from-emerald-50 {
+            background: rgba(6, 78, 59, 0.3) !important;
+            border-color: #334155 !important;
+        }
+        html.dark .bg-purple-50 {
+            background: rgba(88, 28, 135, 0.3) !important;
+            border-color: #334155 !important;
+        }
+        html.dark .text-blue-800, html.dark .text-blue-700, html.dark .text-blue-600 {
+            color: #60a5fa !important;
+        }
+        html.dark .text-green-800, html.dark .text-green-600 {
+            color: #34d399 !important;
+        }
+        html.dark .text-purple-800, html.dark .text-purple-600 {
+            color: #c084fc !important;
+        }
+        html.dark .border-gray-200, html.dark .border-slate-200, html.dark .border-green-200 {
+            border-color: #334155 !important;
+        }
+        html.dark .upload-area {
+            background: rgba(15, 23, 42, 0.6) !important;
+            border-color: #334155 !important;
+        }
+        html.dark .upload-area:hover {
+            border-color: #4f46e5 !important;
+            background: rgba(30, 41, 59, 0.6) !important;
+        }
+        html.dark .sensitivity-btn:not(.bg-gradient-to-r) {
+            border-color: #334155 !important;
+            color: #cbd5e1 !important;
+            background-color: transparent !important;
+        }
+        html.dark .sensitivity-btn:not(.bg-gradient-to-r):hover {
+            border-color: #4f46e5 !important;
+            color: #818cf8 !important;
+        }
+        html.dark select, html.dark input:not([type="range"]) {
+            background-color: #111827 !important;
+            color: #f1f5f9 !important;
+            border-color: #374151 !important;
+        }
+        html.dark select option {
+            background-color: #111827 !important;
+            color: #f1f5f9 !important;
+        }
+        html.dark .modal-close-btn {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #f1f5f9 !important;
+        }
+        html.dark .highlight-preview-content {
+            background: #111827 !important;
+            border: 1px solid #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+        html.dark .bg-white.rounded-2xl.shadow-2xl {
+            background: #111827 !important;
+            border: 1px solid #1e293b !important;
         }
         
-        .btn-enhanced:hover::before {
-            left: 100%;
+        /* Dark mode overrides for dynamic status and summary boxes */
+        html.dark #uploadedInfo {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.15) 0%, rgba(4, 120, 87, 0.15) 100%) !important;
+            border-color: rgba(5, 150, 105, 0.25) !important;
+        }
+        html.dark #uploadedInfo p {
+            color: #34d399 !important;
         }
         
+        html.dark .stats-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.4) 100%) !important;
+            border: 1px solid rgba(43, 51, 76, 0.4) !important;
+            border-left: 4px solid #3b82f6 !important;
+        }
+        html.dark .stats-card h3 {
+            color: #60a5fa !important;
+        }
+        html.dark .stats-card .text-blue-750, html.dark .stats-card .text-blue-700 {
+            color: #94a3b8 !important;
+        }
+        html.dark .stats-card .text-green-750, html.dark .stats-card .text-green-700 {
+            color: #34d399 !important;
+        }
+        html.dark .stats-card .text-purple-750, html.dark .stats-card .text-purple-700 {
+            color: #c084fc !important;
+        }
+
+        html.dark #processingStatus .bg-gradient-to-r {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.35) 0%, rgba(15, 23, 42, 0.35) 100%) !important;
+            border: 1px solid rgba(43, 51, 76, 0.4) !important;
+        }
+        html.dark #processingStatus span.font-semibold {
+            color: #cbd5e1 !important;
+        }
+        html.dark #processingStatus p {
+            color: #f8fafc !important;
+        }
+        html.dark #processingStatus .bg-blue-50 {
+            background: rgba(59, 130, 246, 0.1) !important;
+            border: 1px solid rgba(59, 130, 246, 0.15) !important;
+        }
+        html.dark #processingStatus .bg-blue-100 {
+            background: rgba(59, 130, 246, 0.15) !important;
+        }
+        html.dark #processingStatus .text-blue-800 {
+            color: #60a5fa !important;
+        }
+        html.dark #processingStatus .text-blue-600 {
+            color: #93c5fd !important;
+        }
+
+        html.dark #processingStatus .bg-green-50 {
+            background: rgba(16, 185, 129, 0.1) !important;
+            border: 1px solid rgba(16, 185, 129, 0.15) !important;
+        }
+        html.dark #processingStatus .bg-green-100 {
+            background: rgba(16, 185, 129, 0.15) !important;
+        }
+        html.dark #processingStatus .text-green-800 {
+            color: #34d399 !important;
+        }
+        html.dark #processingStatus .text-green-600 {
+            color: #a7f3d0 !important;
+        }
+
+        html.dark #processingStatus .bg-purple-50 {
+            background: rgba(139, 92, 246, 0.1) !important;
+            border: 1px solid rgba(139, 92, 246, 0.15) !important;
+        }
+        html.dark #processingStatus .bg-purple-100 {
+            background: rgba(139, 92, 246, 0.15) !important;
+        }
+        html.dark #processingStatus .text-purple-800 {
+            color: #a78bfa !important;
+        }
+        html.dark #processingStatus .text-purple-600 {
+            color: #c4b5fd !important;
+        }
+
+        /* Staggered Entrance Animations */
+        @keyframes fadeInUpStagger {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stagger-in {
+            opacity: 0;
+            animation: fadeInUpStagger 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
         /* Improved Card Animations */
         .card-enhanced {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -270,6 +670,20 @@
         .card-enhanced:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-popup {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+            will-change: transform, box-shadow;
+        }
+        
+        .card-popup:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.08) !important;
+        }
+        
+        html.dark .card-popup:hover {
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5) !important;
         }
         
         /* Loading Animation Improvements */
@@ -326,12 +740,12 @@
             100% { background-position: -200% 0; }
         }
         
-        /* Improved Highlight Cards */
+        /* Improved Highlight Cards with Sport-Specific glows */
         .highlight-card-enhanced {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border: 1px solid #e2e8f0;
             border-radius: 1rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.4s ease;
             position: relative;
             overflow: hidden;
         }
@@ -343,9 +757,9 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #7c3aed);
             transform: scaleX(0);
             transition: transform 0.3s ease;
+            z-index: 10;
         }
         
         .highlight-card-enhanced:hover::before {
@@ -353,9 +767,64 @@
         }
         
         .highlight-card-enhanced:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.08) !important;
+        }
+        
+        html.dark .highlight-card-enhanced {
+            background: rgba(22, 27, 42, 0.9) !important;
+            border-color: rgba(43, 51, 76, 0.7) !important;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+        }
+        
+        html.dark .highlight-card-enhanced:hover {
+            border-color: #ff5d00 !important;
+            box-shadow: 0 15px 35px -10px rgba(255, 93, 0, 0.12) !important;
+        }
+
+        /* Soccer Glow */
+        .highlight-card-enhanced.sport-soccer::before {
+            background: #10b981;
+        }
+        .highlight-card-enhanced.sport-soccer:hover {
+            border-color: #10b981;
+            box-shadow: 0 15px 35px -10px rgba(16, 185, 129, 0.08);
+        }
+
+        /* Basketball Glow */
+        .highlight-card-enhanced.sport-basketball::before {
+            background: #f97316;
+        }
+        .highlight-card-enhanced.sport-basketball:hover {
+            border-color: #f97316;
+            box-shadow: 0 15px 35px -10px rgba(249, 115, 22, 0.08);
+        }
+
+        /* Tennis Glow */
+        .highlight-card-enhanced.sport-tennis::before {
+            background: #84cc16;
+        }
+        .highlight-card-enhanced.sport-tennis:hover {
+            border-color: #84cc16;
+            box-shadow: 0 15px 35px -10px rgba(132, 204, 22, 0.08);
+        }
+
+        /* Cricket Glow */
+        .highlight-card-enhanced.sport-cricket::before {
+            background: #f59e0b;
+        }
+        .highlight-card-enhanced.sport-cricket:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 15px 35px -10px rgba(245, 158, 11, 0.08);
+        }
+
+        /* General Glow */
+        .highlight-card-enhanced.sport-general::before {
+            background: #3b82f6;
+        }
+        .highlight-card-enhanced.sport-general:hover {
             border-color: #3b82f6;
+            box-shadow: 0 15px 35px -10px rgba(59, 130, 246, 0.08);
         }
         
         /* Video Thumbnail Styles */
@@ -408,8 +877,51 @@
     </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 bg-white bg-opacity-80" style="background-image: url('data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23f1f5f9\' fill-opacity=\'0.4\' fill-rule=\'evenodd\'%3E%3Cpath d=\'m0 40l40-40h-40z\'/%3E%3Cpath d=\'m40 40v-40h-40z\' fill=\'%23e2e8f0\' fill-opacity=\'0.2\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+    <!-- High-Energy Sports Collage Background -->
+    <div class="sports-collage-bg">
+        <!-- Dynamic abstract sports grid/lines -->
+        <svg class="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+                    <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#3b82f6" stroke-width="0.75" stroke-dasharray="4,4"/>
+                </pattern>
+                <radialGradient id="grad1" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.12"/>
+                    <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            <!-- Giant glowing fields -->
+            <circle cx="15%" cy="25%" r="500" fill="url(#grad1)" />
+            <circle cx="85%" cy="75%" r="600" fill="url(#grad1)" />
+        </svg>
+
+        <!-- Soccer / Football Player Silhouette -->
+        <svg class="absolute top-[12%] left-[4%] w-60 h-60 text-blue-900 animate-float opacity-80" viewBox="0 0 512 512" fill="currentColor">
+            <path d="M428.4 286.7c-9.1-1.9-18.4 .5-25.2 6.5l-44.1 39.4-48-26.6c-17.5-9.7-39-7.8-54.6 4.9l-58.4 47.4-44.3-54.2c-10.4-12.7-27.1-18.5-43.1-14.8l-72.3 16.7c-17.5 4-28.7 21.4-24.7 38.9s21.4 28.7 38.9 24.7l50.3-11.6 37 45.3c14.6 17.9 39 23.3 59.9 13.3l74.9-36 47.4 34.3c12 8.7 27.6 11.2 41.7 6.6l98.8-32.3c16.9-5.5 26.2-23.7 20.7-40.6s-23.7-26.2-40.6-20.7zM288 128a64 64 0 1 0 -128 0 64 64 0 1 0 128 0z"/>
+        </svg>
+
+        <!-- Basketball Player Silhouette -->
+        <svg class="absolute bottom-[10%] right-[3%] w-72 h-72 text-indigo-900 animate-float opacity-80" style="animation-delay: 2s;" viewBox="0 0 512 512" fill="currentColor">
+            <path d="M192 48a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm197.6 156.4c-9.1-16.7-26.5-27-45.5-27L288 177.4V96c0-17.7-14.3-32-32-32s-32 14.3-32 32v128c0 14 9.1 26.3 22.6 30.4l82.7 24.8-19.6 98.2-70.3-35.1c-13.8-6.9-30.2-5-42.1 4.7L114.7 413c-14.1 11.3-16.3 31.9-5 46s31.9 16.3 46 5l65-52 74.9 37.5c16.9 8.5 37.3 5.4 50.8-7.7l86.1-83.6c11.3-11 16-26.8 12.6-42.4L412.3 228c-3.1-14-11.9-25.9-22.7-33.6z"/>
+        </svg>
+
+        <!-- Running Sprinter Silhouette -->
+        <svg class="absolute top-[48%] right-[10%] w-60 h-60 text-purple-900 animate-pulse opacity-85" viewBox="0 0 512 512" fill="currentColor">
+            <path d="M224 48a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zM358.9 286.7c-9.1-1.9-18.4 .5-25.2 6.5l-44.1 39.4-48-26.6c-17.5-9.7-39-7.8-54.6 4.9l-58.4 47.4-44.3-54.2c-10.4-12.7-27.1-18.5-43.1-14.8l-72.3 16.7c-17.5 4-28.7 21.4-24.7 38.9s21.4 28.7 38.9 24.7l50.3-11.6 37 45.3c14.6 17.9 39 23.3 59.9 13.3l74.9-36 47.4 34.3c12 8.7 27.6 11.2 41.7 6.6l98.8-32.3c16.9-5.5 26.2-23.7 20.7-40.6s-23.7-26.2-40.6-20.7z"/>
+        </svg>
+
+        <!-- Tennis Player Swing Silhouette -->
+        <svg class="absolute bottom-[6%] left-[8%] w-64 h-64 text-blue-900 animate-float opacity-80" style="animation-delay: 4s;" viewBox="0 0 512 512" fill="currentColor">
+            <path d="M190.5 68.4c-9.1-16.7-26.5-27-45.5-27L88 41.4V0H24v64c0 17.7 14.3 32 32 32h56v32c0 14 9.1 26.3 22.6 30.4l82.7 24.8-19.6 98.2-70.3-35.1c-13.8-6.9-30.2-5-42.1 4.7L3.7 349c-14.1 11.3-16.3 31.9-5 46s31.9 16.3 46 5l65-52 74.9 37.5c16.9 8.5 37.3 5.4 50.8-7.7l86.1-83.6c11.3-11 16-26.8 12.6-42.4L332.3 164c-3.1-14-11.9-25.9-22.7-33.6L190.5 68.4z"/>
+        </svg>
+
+        <!-- Decorative Sport Stickers / Text tags -->
+        <div class="absolute top-[28%] left-[45%] rotate-[-12deg] text-slate-450 dark:text-slate-700 font-extrabold text-[11px] px-2.5 py-1 rounded border border-slate-300/10 dark:border-slate-800/10 uppercase tracking-widest opacity-15 dark:opacity-10 pointer-events-none">GOAL!</div>
+        <div class="absolute bottom-[40%] right-[22%] rotate-[8deg] text-slate-450 dark:text-slate-700 font-extrabold text-[11px] px-2.5 py-1 rounded border border-slate-300/10 dark:border-slate-800/10 uppercase tracking-widest opacity-15 dark:opacity-10 pointer-events-none">CHAMPION</div>
+        <div class="absolute top-[68%] left-[18%] rotate-[-8deg] text-slate-450 dark:text-slate-700 font-extrabold text-[11px] px-2.5 py-1 rounded border border-slate-300/10 dark:border-slate-800/10 uppercase tracking-widest opacity-15 dark:opacity-10 pointer-events-none">SLAM DUNK!</div>
+        <div class="absolute top-[10%] right-[28%] rotate-[15deg] text-slate-450 dark:text-slate-700 font-extrabold text-[11px] px-2.5 py-1 rounded border border-slate-300/10 dark:border-slate-800/10 uppercase tracking-widest opacity-15 dark:opacity-10 pointer-events-none">MATCH POINT</div>
+    </div>
     
     <!-- Authentication Modal -->
     <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
@@ -435,7 +947,7 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input type="password" id="loginPassword" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Enter your password">
                     </div>
-                    <button type="submit" class="w-full btn-primary btn-enhanced text-white py-3 rounded-xl font-semibold text-lg">
+                    <button type="submit" class="w-full btn-3d-enhanced btn-3d-blue text-white py-3.5 rounded-xl font-bold text-lg">
                         Sign In
                     </button>
                 </form>
@@ -472,7 +984,7 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input type="password" id="registerPassword" required class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Create a password">
                     </div>
-                    <button type="submit" class="w-full btn-success btn-enhanced text-white py-3 rounded-xl font-semibold text-lg">
+                    <button type="submit" class="w-full btn-3d-enhanced btn-3d-green text-white py-3.5 rounded-xl font-bold text-lg">
                         Create Account
                     </button>
                 </form>
@@ -494,7 +1006,7 @@
     </div>
 
     <!-- Navigation Bar -->
-    <nav class="relative z-20 bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm">
+    <nav class="relative z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center gap-3">
@@ -506,14 +1018,31 @@
                     <span class="text-xl font-bold text-gray-800">AI Sports Highlights</span>
                 </div>
                 
-                <!-- User Menu -->
-                <div id="userMenu" class="flex items-center gap-4">
-                    <!-- Not Logged In -->
-                    <div id="notLoggedIn" class="flex items-center gap-3">
-                        <button onclick="openAuthModal()" class="btn-primary btn-enhanced text-white px-6 py-2 rounded-lg font-medium text-sm">
-                            Sign In
-                        </button>
-                    </div>
+                <!-- Theme Toggle & User Menu -->
+                <div class="flex items-center gap-4">
+                    <!-- Dynamic 3D Theme Switcher -->
+                    <button 
+                        id="themeToggleBtn"
+                        class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold shadow-[0_4px_0_#cbd5e1] dark:shadow-[0_4px_0_#1e293b] active:translate-y-[2px] active:shadow-[0_2px_0_#cbd5e1] dark:active:shadow-[0_2px_0_#1e293b] hover:-translate-y-[1px] hover:shadow-[0_5px_0_#cbd5e1] dark:hover:shadow-[0_5px_0_#1e293b] transition-all duration-75 btn-3d-enhanced"
+                        aria-label="Toggle Theme"
+                    >
+                        <!-- Sun (visible in dark mode) -->
+                        <svg class="w-5 h-5 hidden dark:block text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.46 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                        </svg>
+                        <!-- Moon (visible in light mode) -->
+                        <svg class="w-5 h-5 block dark:hidden text-indigo-900" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                    </button>
+                    
+                    <div id="userMenu" class="flex items-center gap-4">
+                        <!-- Not Logged In -->
+                        <div id="notLoggedIn" class="flex items-center gap-3">
+                            <button onclick="openAuthModal()" class="btn-3d-enhanced btn-3d-blue text-white px-6 py-2.5 rounded-xl font-bold text-sm">
+                                Sign In
+                            </button>
+                        </div>
                     
                     <!-- Logged In -->
                     <div id="loggedIn" class="hidden flex items-center gap-4">
@@ -592,32 +1121,26 @@
     <div class="relative z-10 min-h-screen p-4">
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
-            <div class="text-center mb-16 section-fade-in">
-                <div class="relative mb-8">
-                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl blur-3xl opacity-20 animate-pulse"></div>
-                    <div class="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-8 shadow-2xl">
-                        <h1 class="text-6xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent mb-4 tracking-tight">
-                            AI Sports Highlights
-                        </h1>
-                        <div class="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full mb-6"></div>
-                        <p class="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed font-medium">
-                            Transform your sports footage into <span class="text-blue-600 font-semibold">compelling highlights</span> using cutting-edge AI computer vision and intelligent audio analysis
-                        </p>
-                        <div class="flex items-center justify-center gap-8 mt-8 text-sm text-gray-500">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span>AI-Powered</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <span>Real-time Processing</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                                <span>Professional Quality</span>
-                            </div>
-                        </div>
-                    </div>
+            <div class="text-center mb-12 section-fade-in stagger-in">
+                <h1 class="text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4">
+                    AI Sports Highlights
+                </h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-6 font-medium">
+                    Transform your sports footage into compelling highlights using cutting-edge computer vision and audio analysis.
+                </p>
+                <div class="flex items-center justify-center gap-4 text-xs font-semibold">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/40 dark:border-emerald-900/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        AI-Powered
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200/40 dark:border-blue-900/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        Real-time Processing
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/40 dark:border-indigo-900/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        Professional Quality
+                    </span>
                 </div>
             </div>
 
@@ -625,10 +1148,19 @@
                 <!-- Upload & Settings Panel -->
                 <div class="lg:col-span-4 space-y-8">
                     <!-- Upload Section -->
-                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced border border-white/20">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced relative overflow-hidden group tilt-card stagger-in stagger-delay-1">
+                        <!-- Neon radial glow -->
+                        <div class="absolute -right-16 -top-16 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
+                        
+                        <!-- Floating Badge Outline Sticker -->
+                        <div class="absolute right-4 top-4 text-blue-500/15 group-hover:text-blue-500/35 transition-all duration-300 animate-float pointer-events-none">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.283 8.283 0 013.937-2.087c-.83 1.258-.814 2.9.048 3.764L15.362 5.214z" />
+                            </svg>
+                        </div>
+                        <div class="flex items-center gap-3 mb-6 relative z-10">
+                            <div class="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 rounded-xl flex items-center justify-center shadow-sm">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                 </svg>
                             </div>
@@ -693,10 +1225,20 @@
                     </div>
 
                     <!-- Settings Section -->
-                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced border border-white/20">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="glass-effect rounded-2xl shadow-2xl p-8 card-enhanced relative overflow-hidden group tilt-card stagger-in stagger-delay-2">
+                        <!-- Purple radial glow -->
+                        <div class="absolute -right-16 -top-16 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-500"></div>
+                        
+                        <!-- Floating Gear Outline Sticker -->
+                        <div class="absolute right-4 top-4 text-purple-500/15 group-hover:text-purple-500/35 transition-all duration-300 animate-spin pointer-events-none" style="animation-duration: 15s;">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.02-.397-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </div>
+                        <div class="flex items-center gap-3 mb-6 relative z-10">
+                            <div class="w-12 h-12 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30 rounded-xl flex items-center justify-center shadow-sm">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
                                 </svg>
                             </div>
@@ -736,13 +1278,13 @@
                                         type="range"
                                         id="lengthSlider"
                                         min="10"
-                                        max="60"
+                                        max="300"
                                         value="30"
                                         class="w-full h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer"
                                     />
                                     <div class="flex justify-between text-xs text-gray-500 mt-2">
                                         <span>10s</span>
-                                        <span>60s</span>
+                                        <span>300s</span>
                                     </div>
                                 </div>
                                 <div class="text-center mt-3">
@@ -776,7 +1318,7 @@
                 <!-- Main Content Area -->
                 <div class="lg:col-span-8 space-y-8">
                     <!-- Video Preview -->
-                    <div id="videoPreview" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                    <div id="videoPreview" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in card-popup">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                             <span class="text-2xl">🎬</span>
                             Video Preview
@@ -790,27 +1332,24 @@
                             >
                                 Your browser does not support the video tag.
                             </video>
-                            <div class="video-controls-overlay hidden" id="videoControls">
-                                <div class="flex items-center justify-between text-white">
-                                    <span class="text-sm font-medium" id="currentTime">0:00</span>
-                                    <span class="text-sm font-medium" id="totalTime">0:00</span>
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="mt-8 flex gap-4">
                             <button
                                 id="generateBtn"
-                                class="btn-primary btn-enhanced flex items-center gap-3 text-white px-8 py-4 rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="btn-3d-enhanced btn-3d-blue text-white px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                             >
                                 <span class="text-xl">⚡</span>
                                 Generate Highlights
                             </button>
-                            <button id="downloadBtn" class="btn-success btn-enhanced flex items-center gap-3 text-white px-6 py-4 rounded-xl font-semibold hidden">
+                            <button 
+                                id="downloadBtn" 
+                                class="btn-3d-enhanced btn-3d-green text-white px-6 py-4 rounded-xl font-bold flex items-center gap-3 hidden"
+                            >
                                 <span class="text-lg">💾</span>
                                 Download Highlights
                             </button>
-                            <button class="flex items-center gap-3 bg-gray-100 text-gray-700 px-6 py-4 rounded-xl font-medium hover:bg-gray-200 transition-all">
+                            <button class="btn-3d-enhanced btn-3d-slate px-6 py-4 rounded-xl font-medium flex items-center gap-3">
                                 <span class="text-lg">🔧</span>
                                 Advanced Settings
                             </button>
@@ -868,38 +1407,82 @@
                         </div>
                     </div>
 
-                    <!-- Compiled Highlight Video -->
-                    <div id="compiledVideoSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                    <!-- Compiled Highlight Videos -->
+                    <div id="compiledVideoSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in card-popup">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                             <span class="text-2xl">🎬</span>
-                            Compiled Highlight Video
+                            Compiled Highlight Videos
                         </h2>
-                        <div class="video-preview-container rounded-2xl aspect-video mb-6">
-                            <video id="compiledVideo" controls class="w-full h-full rounded-2xl" preload="metadata">
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm text-gray-600">
-                                <span class="font-medium">Total Duration:</span> <span id="compiledDuration">0:00</span>
-                                <span class="mx-2">•</span>
-                                <span class="font-medium">Highlights:</span> <span id="compiledHighlightCount">0</span>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Ultimate Highlight (Best Moments) -->
+                            <div class="bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-2xl p-6 border border-indigo-100 flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold text-indigo-950 mb-3 flex items-center gap-2">
+                                        <span class="text-base">🏆</span>
+                                        Ultimate Highlight (Best Moments)
+                                    </h3>
+                                    <div class="video-preview-container rounded-xl aspect-video mb-4 overflow-hidden bg-black">
+                                        <video id="bestCompiledVideo" controls class="w-full h-full" preload="metadata">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div class="text-xs text-gray-600">
+                                        <span class="font-semibold">Duration:</span> <span id="bestCompiledDuration">0:00</span>
+                                        <span class="mx-1.5">•</span>
+                                        <span class="font-semibold">Clips:</span> <span id="bestCompiledCount">0</span>
+                                    </div>
+                                    <button 
+                                        id="downloadBestCompiledBtn" 
+                                        class="btn-3d-enhanced btn-3d-indigo text-white text-xs px-4 py-3 rounded-xl font-bold flex items-center gap-2"
+                                    >
+                                        <span>💾</span>
+                                        Download Best
+                                    </button>
+                                </div>
                             </div>
-                            <button id="downloadCompiledBtn" class="btn-success btn-enhanced flex items-center gap-3 text-white px-6 py-3 rounded-xl font-semibold">
-                                <span class="text-lg">💾</span>
-                                Download Video
-                            </button>
+                            
+                            <!-- Custom Highlight (Slider Limit) -->
+                            <div class="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl p-6 border border-emerald-100 flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold text-emerald-950 mb-3 flex items-center gap-2">
+                                        <span class="text-base">⚙️</span>
+                                        Custom Highlight (Slider Limit)
+                                    </h3>
+                                    <div class="video-preview-container rounded-xl aspect-video mb-4 overflow-hidden bg-black">
+                                        <video id="compiledVideo" controls class="w-full h-full" preload="metadata">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div class="text-xs text-gray-600">
+                                        <span class="font-semibold">Duration:</span> <span id="compiledDuration">0:00</span>
+                                        <span class="mx-1.5">•</span>
+                                        <span class="font-semibold">Clips:</span> <span id="compiledHighlightCount">0</span>
+                                    </div>
+                                    <button 
+                                        id="downloadCompiledBtn" 
+                                        class="btn-3d-enhanced btn-3d-green text-white text-xs px-4 py-3 rounded-xl font-bold flex items-center gap-2"
+                                    >
+                                        <span>💾</span>
+                                        Download Custom
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Generated Highlights -->
-                    <div id="highlightsSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in">
+                    <div id="highlightsSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in card-popup">
                         <div class="flex items-center justify-between mb-8">
                             <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
                                 <span class="text-2xl">✨</span>
                                 Individual Highlights (<span id="highlightCount" class="text-blue-600">0</span>)
                             </h2>
-                            <button class="btn-primary btn-enhanced flex items-center gap-3 text-white px-6 py-3 rounded-xl font-semibold">
+                            <button class="btn-3d-enhanced btn-3d-blue flex items-center gap-3 text-white px-6 py-3 rounded-xl font-semibold">
                                 <span class="text-lg">👁️</span>
                                 View All
                             </button>
@@ -909,22 +1492,22 @@
                             <!-- Highlights will be inserted here -->
                         </div>
 
-                        <div class="mt-8 stats-card rounded-xl p-6">
+                        <div class="mt-8 stats-card rounded-xl p-6 relative z-10">
                             <h3 class="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
                                 <span>📊</span>
                                 Analysis Summary
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="text-center">
-                                    <div class="text-3xl font-bold text-blue-600 mb-1">47</div>
+                                    <div class="text-3xl font-bold text-blue-600 mb-1" id="statMotionEvents">0</div>
                                     <div class="text-sm text-blue-700 font-medium">Motion Events</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="text-3xl font-bold text-green-600 mb-1">23</div>
+                                    <div class="text-3xl font-bold text-green-600 mb-1" id="statAudioPeaks">0</div>
                                     <div class="text-sm text-green-700 font-medium">Audio Peaks</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="text-3xl font-bold text-purple-600 mb-1">89%</div>
+                                    <div class="text-3xl font-bold text-purple-600 mb-1" id="statBallTracking">0%</div>
                                     <div class="text-sm text-purple-700 font-medium">Ball Tracking</div>
                                 </div>
                             </div>
@@ -932,10 +1515,10 @@
                     </div>
 
                     <!-- Getting Started Guide -->
-                    <div id="gettingStarted" class="glass-effect rounded-2xl shadow-2xl p-8 section-fade-in border border-white/20">
+                    <div id="gettingStarted" class="glass-effect rounded-2xl shadow-2xl p-8 section-fade-in">
                         <div class="text-center mb-8">
-                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl mb-4 shadow-sm">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                             </div>
@@ -945,8 +1528,8 @@
                         <div class="grid md:grid-cols-2 gap-8">
                             <div class="highlight-card-enhanced rounded-2xl p-8 border border-gray-100">
                                 <div class="flex items-center gap-4 mb-6">
-                                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-14 h-14 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
@@ -966,8 +1549,8 @@
                             </div>
                             <div class="highlight-card-enhanced rounded-2xl p-8 border border-gray-100">
                                 <div class="flex items-center gap-4 mb-6">
-                                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-14 h-14 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-100/50 dark:border-green-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
                                         </svg>
                                     </div>
@@ -996,6 +1579,7 @@
         let currentSensitivity = 'medium';
         let currentProgress = 0;
         let currentUser = null;
+        let currentHighlightFilename = null;
 
         // Authentication Functions
         function openAuthModal() {
@@ -1165,7 +1749,7 @@
             historyEmpty.classList.add('hidden');
 
             historyContent.innerHTML = history.map(item => `
-                <div class="highlight-card-enhanced rounded-xl p-6 border border-gray-200">
+                <div class="highlight-card-enhanced rounded-xl p-6 border border-gray-200 sport-${item.sport_type || 'general'} stagger-in">
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center gap-3 mb-3">
@@ -1199,7 +1783,7 @@
                             </div>
                         </div>
                         ${item.highlight_filename ? `
-                            <button onclick="playHistoryVideo('${item.highlight_filename}')" class="btn-primary btn-enhanced text-white px-4 py-2 rounded-lg text-sm font-medium ml-4">
+                            <button onclick="playHistoryVideo('${item.highlight_filename}')" class="btn-3d-enhanced btn-3d-blue text-white px-4 py-2.5 rounded-xl text-sm font-medium ml-4">
                                 Play Highlights
                             </button>
                         ` : ''}
@@ -1327,10 +1911,32 @@
             }
         }
 
+        // Helper to format duration for the slider label
+        function formatDurationLabel(seconds) {
+            const secs = parseInt(seconds);
+            if (secs >= 60) {
+                const mins = Math.floor(secs / 60);
+                const remainingSecs = secs % 60;
+                if (remainingSecs === 0) {
+                    return `${mins} minute${mins > 1 ? 's' : ''}`;
+                }
+                return `${mins} minute${mins > 1 ? 's' : ''} ${remainingSecs} second${remainingSecs !== 1 ? 's' : ''}`;
+            }
+            return `${secs} seconds`;
+        }
+
         // Settings functionality
-        document.getElementById('lengthSlider').addEventListener('input', (e) => {
-            document.getElementById('lengthValue').textContent = e.target.value + ' seconds';
-        });
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValue = document.getElementById('lengthValue');
+
+        function updateSliderDisplay() {
+            lengthValue.textContent = formatDurationLabel(lengthSlider.value);
+        }
+
+        lengthSlider.addEventListener('input', updateSliderDisplay);
+        
+        // Initialize duration display on load
+        updateSliderDisplay();
 
         document.querySelectorAll('.sensitivity-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1389,22 +1995,48 @@
                 progressBar.style.width = '16%';
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Generate highlights
-                const generateResponse = await fetch('http://localhost:5000/api/generate-highlights', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        filename: uploadData.filename,
-                        sport_type: document.getElementById('sportSelect').value,
-                        sensitivity: currentSensitivity,
-                        max_duration: parseInt(document.getElementById('lengthSlider').value)
-                    })
-                });
+                // Generate highlights with timeout handling (e.g., 11 minutes client-side timeout)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 660000);
+
+                let generateResponse;
+                try {
+                    generateResponse = await fetch('http://localhost:5000/api/generate-highlights', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            filename: uploadData.filename,
+                            sport_type: document.getElementById('sportSelect').value,
+                            sensitivity: currentSensitivity,
+                            max_duration: parseInt(document.getElementById('lengthSlider').value)
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (fetchErr) {
+                    if (fetchErr.name === 'AbortError') {
+                        throw new Error('Timeout Error: The request took too long. The highlight generation process exceeded the timeout limit.');
+                    }
+                    throw new Error(`Network Error: Failed to communicate with the server. Please verify the backend is running. (Details: ${fetchErr.message})`);
+                } finally {
+                    clearTimeout(timeoutId);
+                }
 
                 if (!generateResponse.ok) {
-                    throw new Error('Failed to generate highlights');
+                    let errorMessage = 'Failed to generate highlights';
+                    try {
+                        const errJson = await generateResponse.json();
+                        errorMessage = errJson.error || errJson.message || errorMessage;
+                    } catch (jsonErr) {
+                        try {
+                            const errText = await generateResponse.text();
+                            errorMessage = errText || errorMessage;
+                        } catch (textErr) {
+                            errorMessage = generateResponse.statusText || errorMessage;
+                        }
+                    }
+                    throw new Error(`${generateResponse.status} Server Error: ${errorMessage}`);
                 }
 
                 const results = await generateResponse.json();
@@ -1423,14 +2055,17 @@
                 showCompiledVideo(results);
                 
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('processingStage').textContent = 'Error: ' + error.message;
+                console.error('Detailed Error Context for highlight generation:', error);
+                
+                let displayMessage = error.message;
+                
+                document.getElementById('processingStage').textContent = 'Error: ' + displayMessage;
                 progressBar.style.width = '100%';
                 progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
                 
                 setTimeout(() => {
                     document.getElementById('processingStatus').classList.add('hidden');
-                    alert('Error generating highlights: ' + error.message);
+                    alert('Error generating highlights:\n\n' + displayMessage);
                 }, 2000);
             }
             
@@ -1456,7 +2091,8 @@
             } else {
                 highlights.forEach((highlight, index) => {
                     const highlightCard = document.createElement('div');
-                    highlightCard.className = 'highlight-card-enhanced rounded-xl p-6 card-enhanced';
+                    const sportType = document.getElementById('sportSelect').value;
+                    highlightCard.className = `highlight-card-enhanced rounded-xl p-6 sport-${sportType} stagger-in`;
                     highlightCard.style.animationDelay = `${index * 0.1}s`;
                     
                     const startTime = formatTime(highlight.start_time);
@@ -1487,7 +2123,7 @@
                                             <span class="font-medium">⏳ ${duration}</span>
                                         </p>
                                     </div>
-                                    <button class="btn-primary btn-enhanced text-white px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform" onclick="previewHighlight(${highlight.start_time}, ${highlight.end_time})">
+                                    <button class="btn-3d-enhanced btn-3d-blue text-white px-4 py-2.5 rounded-xl text-sm font-medium" onclick="previewHighlight(${highlight.start_time}, ${highlight.end_time}, ${JSON.stringify(highlight.triggers).replace(/"/g, '&quot;')})">
                                         Preview
                                     </button>
                                 </div>
@@ -1504,10 +2140,10 @@
                 });
             }
 
-            // Update stats
-            document.querySelector('.stats-card .text-3xl.font-bold.text-blue-600').textContent = stats.motion_events || 0;
-            document.querySelector('.stats-card .text-3xl.font-bold.text-green-600').textContent = stats.audio_peaks || 0;
-            document.querySelector('.stats-card .text-3xl.font-bold.text-purple-600').textContent = Math.round(stats.ball_tracking_accuracy || 0) + '%';
+            // Update stats using unique IDs
+            document.getElementById('statMotionEvents').textContent = stats.motion_events || 0;
+            document.getElementById('statAudioPeaks').textContent = stats.audio_peaks || 0;
+            document.getElementById('statBallTracking').textContent = Math.round(stats.ball_tracking_accuracy || 0) + '%';
 
             document.getElementById('highlightCount').textContent = highlights.length;
             document.getElementById('highlightsSection').classList.remove('hidden');
@@ -1527,11 +2163,44 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function previewHighlight(startTime, endTime) {
+        function previewHighlight(startTime, endTime, triggers = []) {
             const video = document.getElementById('previewVideo');
             if (video && video.src) {
-                // Create modal for better preview experience
-                showPreviewModal(startTime, endTime);
+                // Apply exact same cricket/sport offsets in JS so that preview matches compiled video!
+                const sportType = document.getElementById('sportSelect').value;
+                let startOffset = 3.0;
+                let endOffset = 2.0;
+                
+                if (sportType === 'cricket') {
+                    startOffset = 6.5;
+                    endOffset = 2.5;
+                } else if (sportType === 'soccer') {
+                    startOffset = 4.0;
+                    endOffset = 2.0;
+                } else if (sportType === 'basketball') {
+                    startOffset = 2.5;
+                    endOffset = 1.5;
+                } else if (sportType === 'tennis') {
+                    startOffset = 2.0;
+                    endOffset = 1.0;
+                }
+                
+                const hasWicket = triggers.some(t => t.includes("Wicket") || t.includes("Stumping") || t.includes("Dismissal"));
+                const hasBoundary = triggers.some(t => t.includes("Boundary"));
+                
+                if (hasWicket) {
+                    startOffset = Math.max(startOffset, 16.0);
+                    endOffset = Math.max(endOffset, 7.0);
+                } else if (hasBoundary) {
+                    startOffset = Math.max(startOffset, 13.0);
+                    endOffset = Math.max(endOffset, 5.0);
+                }
+                
+                const paddedStart = Math.max(0, startTime - startOffset);
+                const paddedEnd = Math.min(video.duration || 9999, endTime + endOffset);
+                
+                // Create modal with padded preview start/end times
+                showPreviewModal(paddedStart, paddedEnd);
             } else {
                 alert('Please upload a video first to preview highlights');
             }
@@ -1626,52 +2295,67 @@
         // Show compiled highlight video
         function showCompiledVideo(results) {
             const compiledVideoSection = document.getElementById('compiledVideoSection');
+            
+            // 1. Ultimate Highlight (Best Moments)
+            const bestVideo = document.getElementById('bestCompiledVideo');
+            const bestDuration = document.getElementById('bestCompiledDuration');
+            const bestCount = document.getElementById('bestCompiledCount');
+            const downloadBestBtn = document.getElementById('downloadBestCompiledBtn');
+            
+            if (results.best_highlight_video_path) {
+                const bestFilename = results.best_highlight_video_path.split('/').pop().split('\\').pop();
+                currentHighlightFilename = bestFilename; // Set global downloadBtn target to Best highlights
+                
+                // Show download button in preview section
+                document.getElementById('downloadBtn').classList.remove('hidden');
+                
+                bestVideo.src = `http://localhost:5000/api/stream-highlights/${bestFilename}`;
+                bestVideo.type = 'video/mp4';
+                
+                bestDuration.textContent = formatTime(results.best_total_duration || 0);
+                bestCount.textContent = results.best_highlights_count || 0;
+                
+                downloadBestBtn.onclick = () => {
+                    const downloadUrl = `http://localhost:5000/api/download-highlights/${bestFilename}`;
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `best_highlights_${bestFilename}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+            }
+            
+            // 2. Custom Highlight (Slider Limit)
             const compiledVideo = document.getElementById('compiledVideo');
             const compiledDuration = document.getElementById('compiledDuration');
             const compiledHighlightCount = document.getElementById('compiledHighlightCount');
             const downloadCompiledBtn = document.getElementById('downloadCompiledBtn');
             
-            if (results.highlight_video_path && results.highlights && results.highlights.length > 0) {
-                // Extract filename from path
-                const filename = results.highlight_video_path.split('/').pop();
+            if (results.highlight_video_path) {
+                const filename = results.highlight_video_path.split('/').pop().split('\\').pop();
                 
-                // Create video URL for streaming (not download)
-                const videoUrl = `http://localhost:5000/api/stream-highlights/${filename}`;
-                
-                // Set video source with proper MIME type
-                compiledVideo.src = videoUrl;
+                compiledVideo.src = `http://localhost:5000/api/stream-highlights/${filename}`;
                 compiledVideo.type = 'video/mp4';
                 
-                // Add error handling
-                compiledVideo.onerror = function() {
-                    console.error('Video loading error');
-                    compiledVideo.innerHTML = '<p class="text-red-500 p-4">Error loading highlight video. Please try downloading instead.</p>';
-                };
+                compiledDuration.textContent = formatTime(results.total_duration || 0);
+                compiledHighlightCount.textContent = results.total_highlights || 0;
                 
-                // Add load event
-                compiledVideo.onloadeddata = function() {
-                    console.log('Video loaded successfully');
-                };
-                
-                // Update duration and count
-                compiledDuration.textContent = formatTime(results.total_duration);
-                compiledHighlightCount.textContent = results.total_highlights;
-                
-                // Set up download button
                 downloadCompiledBtn.onclick = () => {
                     const downloadUrl = `http://localhost:5000/api/download-highlights/${filename}`;
                     const link = document.createElement('a');
                     link.href = downloadUrl;
-                    link.download = `highlights_${filename}`;
+                    link.download = `custom_highlights_${filename}`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                 };
-                
-                // Show the section
+            }
+            
+            if (results.best_highlight_video_path || results.highlight_video_path) {
                 compiledVideoSection.classList.remove('hidden');
                 
-                // Smooth scroll to compiled video
+                // Smooth scroll to compiled video section
                 setTimeout(() => {
                     compiledVideoSection.scrollIntoView({ 
                         behavior: 'smooth', 
@@ -1683,10 +2367,16 @@
 
         // Download functionality
         document.getElementById('downloadBtn').addEventListener('click', () => {
-            // This will be handled by the compiled video section
-            const compiledVideoSection = document.getElementById('compiledVideoSection');
-            if (!compiledVideoSection.classList.contains('hidden')) {
-                compiledVideoSection.scrollIntoView({ behavior: 'smooth' });
+            if (currentHighlightFilename) {
+                const downloadUrl = `http://localhost:5000/api/download-highlights/${currentHighlightFilename}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `highlights_${currentHighlightFilename}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('No compiled highlights available for download yet.');
             }
         });
 
@@ -1697,6 +2387,98 @@
                 video.addEventListener('timeupdate', updateVideoTimeDisplay);
                 video.addEventListener('loadedmetadata', updateVideoTimeDisplay);
             }
+        });
+
+        // --- 1. Theme Toggle Management ---
+        const initTheme = () => {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        };
+
+        const toggleTheme = () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        };
+        
+        const themeBtn = document.getElementById('themeToggleBtn');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', toggleTheme);
+        }
+        initTheme();
+
+        // --- 2. 3D Tilt Cards Parallax Effect ---
+        const applyTiltEffect = (el) => {
+            if (el.classList.contains('tilt-initialized')) return;
+            el.classList.add('tilt-initialized');
+            
+            el.style.transformStyle = 'preserve-3d';
+            el.style.transition = 'transform 0.1s ease, box-shadow 0.15s ease';
+            
+            el.addEventListener('mousemove', (e) => {
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = ((centerY - y) / centerY) * 10; // max 10deg rotation
+                const rotateY = ((x - centerX) / centerX) * 10; // max 10deg rotation
+                
+                el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                
+                const innerElements = el.querySelectorAll('.score-badge, .trigger-tag, video');
+                innerElements.forEach(inner => {
+                    inner.style.transform = 'translateZ(15px)';
+                });
+            });
+            
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+                el.style.transition = 'transform 0.4s ease, box-shadow 0.4s ease';
+                
+                const innerElements = el.querySelectorAll('.score-badge, .trigger-tag, video');
+                innerElements.forEach(inner => {
+                    inner.style.transform = 'translateZ(0px)';
+                });
+            });
+        };
+
+        // Initialize tilt on existing cards
+        const initAllTilts = () => {
+            document.querySelectorAll('.tilt-card').forEach(applyTiltEffect);
+        };
+
+        // MutationObserver to automatically attach tilt listeners to newly added dynamic cards
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList.contains('tilt-card')) {
+                            applyTiltEffect(node);
+                        }
+                        node.querySelectorAll('.tilt-card').forEach(applyTiltEffect);
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Run DOMContentLoaded hooks
+        document.addEventListener('DOMContentLoaded', () => {
+            initAllTilts();
         });
     </script>
 </body>

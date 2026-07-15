@@ -7,7 +7,10 @@ import os
 import cv2
 import numpy as np
 import librosa
-import moviepy.editor as mp
+try:
+    import moviepy.editor as mp
+except ImportError:
+    import moviepy as mp
 from scipy import signal
 from sklearn.preprocessing import MinMaxScaler
 import tempfile
@@ -83,39 +86,56 @@ class SportsHighlightGenerator:
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     
     def extract_frames(self, video_path, fps=1):
-        """Extract frames from video at specified FPS"""
+        """Extract frames from video at specified FPS using optimized seeking"""
         cap = cv2.VideoCapture(video_path)
         frames = []
         timestamps = []
         
-        frame_count = 0
         fps_original = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
         # Guard against invalid FPS values from the video metadata
         try:
             if not fps_original or fps_original <= 0 or np.isnan(fps_original):
                 fps_original = float(fps)
         except Exception:
             fps_original = float(fps)
+            
         # Ensure we never compute a zero frame interval
         frame_interval = max(1, int(round(fps_original / float(fps))))
         
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-                
-            if frame_count % frame_interval == 0:
+        if total_frames > 0:
+            for idx in range(0, total_frames, frame_interval):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+                ret, frame = cap.read()
+                if not ret:
+                    break
                 frames.append(frame)
-                timestamps.append(frame_count / fps_original)
-            
-            frame_count += 1
-        
+                timestamps.append(idx / fps_original)
+        else:
+            # Fallback to sequential read if total_frames is unavailable
+            frame_count = 0
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                if frame_count % frame_interval == 0:
+                    frames.append(frame)
+                    timestamps.append(frame_count / fps_original)
+                frame_count += 1
+                
         cap.release()
         return frames, timestamps
     
     def calculate_motion_score(self, frames):
         """Calculate motion intensity between consecutive frames"""
         motion_scores = []
+        if not frames:
+            print("DEBUG: Motion input frames is empty")
+            return []
+            
+        # First frame has no previous frame, pad with 0.0 to align length
+        motion_scores.append(0.0)
         
         for i in range(1, len(frames)):
             # Convert to grayscale
@@ -129,6 +149,8 @@ class SportsHighlightGenerator:
             motion_score = np.sum(diff > 30) / (diff.shape[0] * diff.shape[1]) * 100
             motion_scores.append(motion_score)
         
+        print(f"DEBUG: Motion frames input length: {len(frames)}")
+        print(f"DEBUG: Motion scores output length: {len(motion_scores)}")
         return motion_scores
     
     def detect_objects(self, frame):
@@ -185,6 +207,13 @@ class SportsHighlightGenerator:
             else:
                 ball_positions.append(None)
         
+        if not ball_positions:
+            print("DEBUG: Ball positions input is empty")
+            return [], []
+            
+        # First frame has no previous frame, pad with 0.0 to align length
+        movement_scores.append(0.0)
+        
         # Calculate movement scores
         for i in range(1, len(ball_positions)):
             if ball_positions[i] and ball_positions[i-1]:
@@ -193,8 +222,10 @@ class SportsHighlightGenerator:
                 movement = np.sqrt(dx*dx + dy*dy)
                 movement_scores.append(movement)
             else:
-                movement_scores.append(0)
+                movement_scores.append(0.0)
         
+        print(f"DEBUG: Ball positions length: {len(ball_positions)}")
+        print(f"DEBUG: Movement scores length: {len(movement_scores)}")
         return ball_positions, movement_scores
     
     def analyze_audio(self, video_path):
@@ -205,11 +236,14 @@ class SportsHighlightGenerator:
             audio = video.audio
             
             if audio is None:
-                return [], []
+                return [], [], [], []
             
             # Save audio temporarily
             temp_audio_path = tempfile.mktemp(suffix='.wav')
-            audio.write_audiofile(temp_audio_path, verbose=False, logger=None)
+            try:
+                audio.write_audiofile(temp_audio_path, verbose=False, logger=None)
+            except TypeError:
+                audio.write_audiofile(temp_audio_path, logger=None)
             
             # Load audio with librosa
             y, sr = librosa.load(temp_audio_path)
@@ -241,10 +275,17 @@ class SportsHighlightGenerator:
     def detect_audio_events(self, times, rms, spectral_centroid, zcr):
         """Detect audio events (volume spikes, excitement)"""
         if len(rms) == 0:
+            print("DEBUG: Input rms array is empty")
             return []
         
-        # Normalize RMS values
-        rms_normalized = (rms - np.min(rms)) / (np.max(rms) - np.min(rms))
+        # Normalize RMS values safely
+        rms_min = np.min(rms)
+        rms_max = np.max(rms)
+        rms_diff = rms_max - rms_min
+        if rms_diff == 0:
+            rms_normalized = np.zeros_like(rms)
+        else:
+            rms_normalized = (rms - rms_min) / rms_diff
         
         # Detect volume spikes (above 80th percentile)
         volume_threshold = np.percentile(rms_normalized, 80)
@@ -277,21 +318,35 @@ class SportsHighlightGenerator:
                     'frequency': spectral_centroid[i],
                     'activity': zcr[i]
                 })
-        
+        print(f"DEBUG: Input times length: {len(times)}, rms length: {len(rms)}")
+        print(f"DEBUG: Audio events output length: {len(audio_events)}")
         return audio_events
     
-    def calculate_highlight_scores(self, motion_scores, movement_scores, audio_events, timestamps):
-        """Calculate combined highlight scores for each time segment"""
+    def calculate_highlight_scores(self, motion_scores, movement_scores, audio_events, timestamps, sensitivity='medium', sport_type='general', times=None, rms=None, spectral_centroid=None):
+        """Calculate combined highlight scores for each time segment with sport-specific event rules"""
         highlight_segments = []
         
+        # Normalize RMS values safely to [0, 1] range so that audio thresholds work consistently
+        rms_normalized = None
+        if rms is not None and len(rms) > 0:
+            rms_min = np.min(rms)
+            rms_max = np.max(rms)
+            rms_diff = rms_max - rms_min
+            if rms_diff == 0:
+                rms_normalized = np.zeros_like(rms)
+            else:
+                rms_normalized = (rms - rms_min) / rms_diff
+
         # Create time segments (5-second windows)
         segment_duration = 5.0
         max_time = max(timestamps) if timestamps else 0
         
         for start_time in np.arange(0, max_time, segment_duration):
             end_time = min(start_time + segment_duration, max_time)
+            if end_time <= start_time:
+                continue
             
-            # Find motion scores in this segment
+            # Find motion and ball movement scores in this segment
             segment_motion = []
             segment_movement = []
             segment_audio = []
@@ -308,29 +363,143 @@ class SportsHighlightGenerator:
                 if start_time <= event['timestamp'] < end_time:
                     segment_audio.append(event['score'])
             
-            # Calculate segment score
-            motion_score = np.mean(segment_motion) if segment_motion else 0
-            movement_score = np.mean(segment_movement) if segment_movement else 0
-            audio_score = np.mean(segment_audio) if segment_audio else 0
+            # Find raw audio values in this segment for fine-tuned event classification
+            segment_rms = []
+            segment_centroid = []
+            if times is not None and rms_normalized is not None and len(rms_normalized) > 0:
+                for idx, t in enumerate(times):
+                    if start_time <= t < end_time:
+                        if idx < len(rms_normalized):
+                            segment_rms.append(rms_normalized[idx])
+                        if spectral_centroid is not None and idx < len(spectral_centroid):
+                            segment_centroid.append(spectral_centroid[idx])
+            
+            # Calculate segment score using basic mathematical means
+            motion_score = np.mean(segment_motion) if segment_motion else 0.0
+            movement_score = np.mean(segment_movement) if segment_movement else 0.0
+            audio_score = np.mean(segment_audio) if segment_audio else 0.0
             
             # Weighted combination
             total_score = (motion_score * 0.4 + movement_score * 0.3 + audio_score * 0.3)
             
-            if total_score > 20:  # Threshold for highlight
-                highlight_segments.append({
-                    'start_time': start_time,
-                    'end_time': end_time,
-                    'duration': end_time - start_time,
-                    'score': total_score,
-                    'motion_score': motion_score,
-                    'movement_score': movement_score,
-                    'audio_score': audio_score,
-                    'triggers': self._get_triggers(motion_score, movement_score, audio_score)
-                })
+            # Apply cricket heuristics if sport_type is cricket
+            cricket_triggers = []
+            if sport_type == 'cricket':
+                classification = self._classify_cricket_events(segment_motion, segment_movement, segment_audio, segment_rms, segment_centroid)
+                total_score += classification['boost']
+                cricket_triggers = classification['triggers']
+            
+            segment_triggers = self._get_triggers(motion_score, movement_score, audio_score)
+            if cricket_triggers:
+                segment_triggers.extend(cricket_triggers)
+                segment_triggers = list(set(segment_triggers)) # Keep triggers unique
+            
+            highlight_segments.append({
+                'start_time': start_time,
+                'end_time': end_time,
+                'duration': end_time - start_time,
+                'score': total_score,
+                'motion_score': motion_score,
+                'movement_score': movement_score,
+                'audio_score': audio_score,
+                'triggers': segment_triggers
+            })
         
-        # Sort by score and return top segments
+        # Apply global cricket temporal fine-tuning post-processor pass
+        if sport_type == 'cricket':
+            self._fine_tune_cricket_highlights(highlight_segments, rms_normalized, times, spectral_centroid)
+        
+        # Sort by score descending
         highlight_segments.sort(key=lambda x: x['score'], reverse=True)
-        return highlight_segments[:10]  # Top 10 highlights
+        
+        # Determine dynamic threshold based on sensitivity
+        if sensitivity == 'low':
+            threshold = 40.0
+        elif sensitivity == 'high':
+            threshold = 15.0
+        else:  # 'medium'
+            threshold = 20.0
+            
+        # Filter segments based on high-threshold
+        high_threshold_segments = [s for s in highlight_segments if s['score'] > threshold]
+        
+        if high_threshold_segments:
+            final_highlights = high_threshold_segments
+        else:
+            # Fallback calculation using basic mathematical means
+            print(f"DEBUG: No highlights found exceeding threshold {threshold} for sensitivity {sensitivity}. Calculating baseline fallback...")
+            all_scores = [s['score'] for s in highlight_segments]
+            mean_score = np.mean(all_scores) if all_scores else 0.0
+            fallback_threshold = max(5.0, min(mean_score, threshold / 2.0))
+            
+            final_highlights = [s for s in highlight_segments if s['score'] >= fallback_threshold]
+            
+            # Second-level fallback: any score > 0
+            if not final_highlights:
+                final_highlights = [s for s in highlight_segments if s['score'] > 0]
+            
+            # Absolute baseline fallback: return first few segments of the video (even if score is 0)
+            if not final_highlights:
+                print("DEBUG: All highlight scores are 0. Retaining first 5 segments as fallback.")
+                final_highlights = highlight_segments[:5]
+                
+        print(f"DEBUG: Total generated highlight segments count: {len(final_highlights)}")
+        return final_highlights[:10]  # Top 10 highlights
+
+    def _classify_cricket_events(self, segment_motion, segment_movement, segment_audio, segment_rms, segment_centroid):
+        """
+        Intelligent heuristic classification to identify key cricket events:
+        Wickets, Stumpings, Catches, Boundaries (Four/Six), and Dot Balls.
+        Returns a dict: {'boost': float, 'triggers': list}
+        """
+        boost = 0.0
+        triggers = []
+        
+        max_motion = np.max(segment_motion) if segment_motion else 0.0
+        max_movement = np.max(segment_movement) if segment_movement else 0.0
+        mean_audio = np.mean(segment_audio) if segment_audio else 0.0
+        max_rms = np.max(segment_rms) if segment_rms else 0.0
+        mean_centroid = np.mean(segment_centroid) if segment_centroid else 0.0
+        
+        # 1. Wicket / Catch / Stumping Appeal detection
+        # Characteristics: High pitch appeal scream (high spectral centroid) + volume spike + motion
+        # Lowered thresholds (centroid: 1700 Hz, volume: 0.78 normalized) and increased boost to 85 points to prioritize wickets.
+        is_high_frequency = mean_centroid > 1700 if segment_centroid else False
+        is_loud = max_rms > 0.78 or mean_audio > 0.4
+        is_high_action = max_motion > 12.0
+        
+        if is_loud and is_high_frequency:
+            if is_high_action:
+                # Bowler / players celebrating: very high probability of wicket / catch / stumping result!
+                boost += 85.0
+                triggers.append("Wicket / Dismissal Celebration")
+            else:
+                # Bowled or appeal without immediate running celebration
+                boost += 65.0
+                triggers.append("Wicket / Catch Appeal")
+                
+        # 2. Boundary (Four / Six) detection
+        # Characteristics: High ball movement tracking score (traveling fast/far) followed by crowd cheer
+        is_fast_ball = max_movement > 30.0
+        is_cheer = mean_audio > 0.3
+        if is_fast_ball and is_cheer:
+            boost += 45.0
+            triggers.append("Boundary (Four/Six)")
+            
+        # 3. Stumping / Run Out Appeal detection
+        # Characteristics: Ball is near stumps/keeper (moderate movement) followed by instant volume peak
+        if 15.0 < max_movement <= 35.0 and max_rms > 0.6:
+            boost += 35.0
+            triggers.append("Stumping / Run Out Appeal")
+            
+        # 4. Crucial Dot Ball / Delivery detection
+        # Characteristics: Ball movement tracked (delivery occurs) but absolute audio silence / player reset
+        if max_movement > 22.0 and max_rms < 0.25:
+            # Bowler delivered a good dot ball, crowd is quiet, batsman beaten
+            boost += 30.0
+            triggers.append("Crucial Dot Ball")
+            
+        return {'boost': boost, 'triggers': triggers}
     
     def _get_triggers(self, motion_score, movement_score, audio_score):
         """Determine what triggered this highlight"""
@@ -344,52 +513,213 @@ class SportsHighlightGenerator:
         if audio_score > 0.2:
             triggers.append('Crowd Reaction')
         return triggers
+
+    def _fine_tune_cricket_highlights(self, segments, rms, times, spectral_centroid):
+        """
+        Runs a global temporal pass over all 5-second segments to detect cricket sequences:
+        - Wickets (looking for the run-up segment preceding a wicket cheer).
+        - Sixes/Four boundaries (ball release -> hit -> crowd roar sequence).
+        - Milestones/Achievements (prolonged cheers lasting 10-20 seconds).
+        - Crucial dot balls (delivery play followed by quietness).
+        """
+        if segments is None or len(segments) == 0:
+            return
+            
+        print("DEBUG: Running cricket global temporal fine-tuning post-processor pass...")
+        
+        for i, seg in enumerate(segments):
+            start = seg['start_time']
+            end = seg['end_time']
+            
+            # Find raw audio values in this segment
+            seg_rms = []
+            seg_centroid = []
+            if times is not None and rms is not None and len(rms) > 0:
+                for idx, t in enumerate(times):
+                    if start <= t < end:
+                        if idx < len(rms):
+                            seg_rms.append(rms[idx])
+                        if spectral_centroid is not None and idx < len(spectral_centroid):
+                            seg_centroid.append(spectral_centroid[idx])
+            
+            max_rms = np.max(seg_rms) if seg_rms else 0.0
+            mean_rms = np.mean(seg_rms) if seg_rms else 0.0
+            mean_centroid = np.mean(seg_centroid) if seg_centroid else 0.0
+            max_movement = seg['movement_score']
+            max_motion = seg['motion_score']
+            mean_audio = seg['audio_score']
+            
+            # Direct baseline audio boost to ensure crowd roars compete with raw ball tracking values
+            if max_rms > 0.70:
+                seg['score'] += 100.0
+
+            # 1. Detect Wicket Cheer
+            is_wicket_cheer = (max_rms > 0.78 and mean_centroid > 1800 and max_motion > 15.0)
+            if is_wicket_cheer:
+                seg['score'] += 120.0  # Huge boost for the celebration segment
+                seg['triggers'].append("Wicket / Dismissal Celebration")
+                
+                # Human brain logic: The ball delivery and run-up happen in the PREVIOUS segment!
+                # If the celebration is in segment i, let's boost the previous segment (i-1)
+                # to make sure the delivery run-up is selected and merged!
+                if i > 0:
+                    segments[i-1]['score'] += 90.0
+                    segments[i-1]['triggers'].append("Wicket Delivery Play")
+                    
+            # 2. Detect Six / Four Boundary Cheer
+            is_cheer = max_rms > 0.65 and mean_rms > 0.30
+            if is_cheer:
+                seg['score'] += 75.0
+                seg['triggers'].append("Boundary (Four/Six)")
+                if i > 0:
+                    segments[i-1]['score'] += 80.0
+                    segments[i-1]['triggers'].append("Boundary Play Build-up")
+            
+            # 3. Detect Milestone Achievements (Prolonged applause / cheering)
+            # If the current, previous, and next segments are all loud
+            prev_rms = 0.0
+            next_rms = 0.0
+            if times is not None and rms is not None and len(rms) > 0:
+                if i > 0:
+                    p_start = segments[i-1]['start_time']
+                    p_end = segments[i-1]['end_time']
+                    p_rms_list = [rms[idx] for idx, t in enumerate(times) if p_start <= t < p_end and idx < len(rms)]
+                    prev_rms = np.max(p_rms_list) if p_rms_list else 0.0
+                if i < len(segments)-1:
+                    n_start = segments[i+1]['start_time']
+                    n_end = segments[i+1]['end_time']
+                    n_rms_list = [rms[idx] for idx, t in enumerate(times) if n_start <= t < n_end and idx < len(rms)]
+                    next_rms = np.max(n_rms_list) if n_rms_list else 0.0
+            
+            if max_rms > 0.78 and prev_rms > 0.55 and next_rms > 0.55:
+                seg['score'] += 95.0
+                seg['triggers'].append("Milestone Achievement Celebration")
+                
+            # 4. Crucial Dot Ball / Good Delivery
+            # Ball was bowled, but crowd remains quiet
+            if max_movement > 22.0 and max_rms < 0.38:
+                seg['score'] += 35.0
+                seg['triggers'].append("Crucial Dot Ball")
+                
+        # Clean up and ensure triggers are unique for all segments
+        for seg in segments:
+            seg['triggers'] = list(set(seg['triggers']))
     
-    def compile_highlight_video(self, video_path, highlights, output_path):
+    def compile_highlight_video(self, video_path, highlights, output_path, sport_type='general'):
         """Compile highlights into a single video - Using MoviePy directly"""
         # Skip FFmpeg attempt and go straight to MoviePy which is already installed
-        print("Using MoviePy for video compilation...")
-        return self.compile_highlight_video_moviepy(video_path, highlights, output_path)
+        print(f"Using MoviePy for video compilation for sport type: {sport_type}...")
+        return self.compile_highlight_video_moviepy(video_path, highlights, output_path, sport_type)
     
-    def compile_highlight_video_moviepy(self, video_path, highlights, output_path):
-        """Optimized MoviePy compilation for faster processing"""
+    def compile_highlight_video_moviepy(self, video_path, highlights, output_path, sport_type='general'):
+        """Optimized MoviePy compilation for faster processing with sport-specific padding and overlap merging"""
         try:
-            from moviepy.editor import VideoFileClip, concatenate_videoclips
+            try:
+                from moviepy.editor import VideoFileClip, concatenate_videoclips
+            except ImportError:
+                from moviepy import VideoFileClip, concatenate_videoclips
             
             print("Using optimized MoviePy processing...")
-            # Use lower resolution and faster processing settings
-            original_video = VideoFileClip(video_path, audio=True, target_resolution=(480, None))
+            # Preserve original video resolution for high quality highlights
+            original_video = VideoFileClip(video_path, audio=True)
+            video_duration = original_video.duration
+
+            # Define sport-specific margins (shift start back, extend end forward)
+            start_offset = 3.0
+            end_offset = 2.0
             
-            # Extract highlight clips with optimized settings
-            highlight_clips = []
+            if sport_type == 'cricket':
+                start_offset = 6.5  # capture bowler run-up and delivery release
+                end_offset = 2.5    # capture follow-through and immediate result
+            elif sport_type == 'soccer':
+                start_offset = 4.0  # build-up play and pass
+                end_offset = 2.0
+            elif sport_type == 'basketball':
+                start_offset = 2.5
+                end_offset = 1.5
+            elif sport_type == 'tennis':
+                start_offset = 2.0
+                end_offset = 1.0
+
+            # Expand raw highlight segments
+            expanded_segments = []
             for highlight in highlights:
                 start_time = highlight['start_time']
-                # Calculate end_time if not present
                 if 'end_time' in highlight:
                     end_time = highlight['end_time']
                 else:
-                    # Use duration to calculate end_time
                     end_time = start_time + highlight['duration']
                 
-                # Ensure times are within video bounds
-                video_duration = original_video.duration
-                start_time = max(0, min(start_time, video_duration))
-                end_time = max(start_time, min(end_time, video_duration))
+                # Determine padding offsets dynamically based on event triggers
+                current_start_offset = start_offset
+                current_end_offset = end_offset
                 
-                clip = original_video.subclip(start_time, end_time)
+                triggers = highlight.get('triggers', [])
+                has_wicket = any("Wicket" in t or "Stumping" in t or "Dismissal" in t for t in triggers)
+                has_boundary = any("Boundary" in t for t in triggers)
+                
+                if has_wicket:
+                    current_start_offset = max(start_offset, 16.0)
+                    current_end_offset = max(end_offset, 7.0)
+                elif has_boundary:
+                    current_start_offset = max(start_offset, 13.0)
+                    current_end_offset = max(end_offset, 5.0)
+                
+                # Apply offsets
+                start_time = max(0.0, start_time - current_start_offset)
+                end_time = min(video_duration, end_time + current_end_offset)
+                expanded_segments.append((start_time, end_time))
+            
+            # Sort segments by start time
+            expanded_segments.sort(key=lambda x: x[0])
+            
+            # Merge overlapping segments
+            merged_segments = []
+            if expanded_segments:
+                current_start, current_end = expanded_segments[0]
+                for next_start, next_end in expanded_segments[1:]:
+                    if next_start <= current_end:
+                        # Overlap detected, merge them
+                        current_end = max(current_end, next_end)
+                    else:
+                        # No overlap, push current and start new window
+                        merged_segments.append((current_start, current_end))
+                        current_start, current_end = next_start, next_end
+                merged_segments.append((current_start, current_end))
+
+            print(f"DEBUG: Merged {len(highlights)} segments into {len(merged_segments)} continuous highlight clips.")
+            
+            # Extract highlight clips with optimized settings
+            highlight_clips = []
+            for start_time, end_time in merged_segments:
+                if hasattr(original_video, 'subclip'):
+                    clip = original_video.subclip(start_time, end_time)
+                else:
+                    clip = original_video.subclipped(start_time, end_time)
                 highlight_clips.append(clip)
             
             if highlight_clips:
                 final_video = concatenate_videoclips(highlight_clips)
-                final_video.write_videofile(
-                    output_path,
-                    codec='libx264',
-                    audio_codec='aac',
-                    preset='ultrafast',  # Fastest encoding
-                    verbose=False,  # Hide detailed progress for speed
-                    threads=8,     # Use more threads for faster processing
-                    ffmpeg_params=["-crf", "30", "-tune", "fastdecode", "-movflags", "+faststart"]  # Optimize for speed
-                )
+                try:
+                    final_video.write_videofile(
+                        output_path,
+                        codec='libx264',
+                        audio_codec='aac',
+                        preset='ultrafast',  # Fastest encoding
+                        verbose=False,  # Hide detailed progress for speed
+                        threads=8,     # Use more threads for faster processing
+                        ffmpeg_params=["-crf", "20", "-tune", "fastdecode", "-movflags", "+faststart"]  # Crisp quality
+                    )
+                except TypeError:
+                    final_video.write_videofile(
+                        output_path,
+                        codec='libx264',
+                        audio_codec='aac',
+                        preset='fastest' if hasattr(final_video, 'preset') else 'ultrafast',
+                        logger=None,
+                        threads=8,     # Use more threads for faster processing
+                        ffmpeg_params=["-crf", "20", "-tune", "fastdecode", "-movflags", "+faststart"]  # Crisp quality
+                    )
                 
                 for clip in highlight_clips:
                     clip.close()
@@ -404,7 +734,6 @@ class SportsHighlightGenerator:
             import traceback
             print(f"MoviePy compilation failed: {e}")
             traceback.print_exc()
-            return False
             return False
 
     def generate_highlights(self, video_path, sport_type='general', sensitivity='medium', max_duration=30):
@@ -422,13 +751,7 @@ class SportsHighlightGenerator:
             audio_events = self.detect_audio_events(times, rms, spectral_centroid, zcr)
             
             # Calculate highlight scores
-            highlights = self.calculate_highlight_scores(motion_scores, movement_scores, audio_events, timestamps)
-            
-            # Adjust sensitivity
-            if sensitivity == 'low':
-                highlights = [h for h in highlights if h['score'] > 40]
-            elif sensitivity == 'high':
-                highlights = [h for h in highlights if h['score'] > 15]
+            highlights = self.calculate_highlight_scores(motion_scores, movement_scores, audio_events, timestamps, sensitivity, sport_type, times, rms, spectral_centroid)
             
             # Limit total duration
             total_duration = 0
@@ -440,20 +763,36 @@ class SportsHighlightGenerator:
                 else:
                     break
             
-            # Generate compiled highlight video
-            highlight_video_path = None
+            # Sort both custom and best lists chronologically by start_time
+            filtered_highlights.sort(key=lambda x: x['start_time'])
+            highlights.sort(key=lambda x: x['start_time'])
+
+            # Generate compiled highlight video for Custom selection (slider-limited)
+            custom_video_path = None
             if filtered_highlights:
-                highlight_video_path = os.path.join(OUTPUT_FOLDER, f"highlights_{uuid.uuid4().hex}.mp4")
-                compilation_success = self.compile_highlight_video(video_path, filtered_highlights, highlight_video_path)
-                
+                custom_video_path = os.path.join(OUTPUT_FOLDER, f"highlights_{uuid.uuid4().hex}.mp4")
+                compilation_success = self.compile_highlight_video(video_path, filtered_highlights, custom_video_path, sport_type)
                 if not compilation_success:
-                    highlight_video_path = None
+                    custom_video_path = None
+            
+            # Generate compiled highlight video containing ALL key moments (ignoring duration slider)
+            best_video_path = None
+            if highlights:
+                best_video_path = os.path.join(OUTPUT_FOLDER, f"best_highlights_{uuid.uuid4().hex}.mp4")
+                compilation_success = self.compile_highlight_video(video_path, highlights, best_video_path, sport_type)
+                if not compilation_success:
+                    best_video_path = None
+            
+            best_duration = sum(h['duration'] for h in highlights) if highlights else 0
             
             return {
                 'highlights': filtered_highlights,
                 'total_highlights': len(filtered_highlights),
                 'total_duration': total_duration,
-                'highlight_video_path': highlight_video_path,
+                'highlight_video_path': custom_video_path,
+                'best_highlight_video_path': best_video_path,
+                'best_highlights_count': len(highlights),
+                'best_total_duration': best_duration,
                 'analysis_stats': {
                     'motion_events': len([s for s in motion_scores if s > 10]),
                     'audio_peaks': len(audio_events),
@@ -639,15 +978,16 @@ def generate_highlights():
         return jsonify(results)
     
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/stream-highlights/<path:filename>', methods=['GET'])
 def stream_highlights(filename):
     """Stream compiled highlight video for playback"""
     try:
-        # Remove 'outputs/' prefix if present
-        if filename.startswith('outputs/'):
-            filename = filename[8:]  # Remove 'outputs/' prefix
+        # Extract the base filename to prevent directory traversal and handle all slash patterns
+        filename = os.path.basename(filename)
         
         # Always look in the outputs folder
         file_path = os.path.join(OUTPUT_FOLDER, filename)
@@ -674,9 +1014,8 @@ def stream_highlights(filename):
 def download_highlights(filename):
     """Download compiled highlight video"""
     try:
-        # Remove 'outputs/' prefix if present
-        if filename.startswith('outputs/'):
-            filename = filename[8:]  # Remove 'outputs/' prefix
+        # Extract the base filename to prevent directory traversal and handle all slash patterns
+        filename = os.path.basename(filename)
         
         file_path = os.path.join(OUTPUT_FOLDER, filename)
         
@@ -703,4 +1042,4 @@ if __name__ == '__main__':
     print("--- Starting production server with Waitress ---")
     # Setting host='0.0.0.0' makes it externally accessible on your network
     # For production, you typically set debug=False, but leaving it True for now to catch any initial errors
-    serve(app, host='0.0.0.0', port=5000)
+    serve(app, host='0.0.0.0', port=5000, channel_timeout=600)
