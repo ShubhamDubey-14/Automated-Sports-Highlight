@@ -625,67 +625,103 @@ class SportsHighlightGenerator:
             video_duration = original_video.duration
 
             # Define sport-specific margins (shift start back, extend end forward)
-            start_offset = 3.0
-            end_offset = 2.0
+            start_offset = 15.0
+            end_offset = 8.0
             
             if sport_type == 'cricket':
-                start_offset = 6.5  # capture bowler run-up and delivery release
-                end_offset = 2.5    # capture follow-through and immediate result
+                start_offset = 15.0  # capture bowler run-up and delivery release
+                end_offset = 8.0    # capture follow-through and immediate result
             elif sport_type == 'soccer':
-                start_offset = 4.0  # build-up play and pass
-                end_offset = 2.0
+                start_offset = 15.0  # build-up play and pass
+                end_offset = 8.0
             elif sport_type == 'basketball':
-                start_offset = 2.5
-                end_offset = 1.5
+                start_offset = 15.0
+                end_offset = 8.0
             elif sport_type == 'tennis':
-                start_offset = 2.0
-                end_offset = 1.0
+                start_offset = 15.0
+                end_offset = 8.0
 
-            # Expand raw highlight segments
-            expanded_segments = []
+            # Create list of raw padding windows for each highlight based on event triggers
+            raw_windows = []
             for highlight in highlights:
-                start_time = highlight['start_time']
-                if 'end_time' in highlight:
-                    end_time = highlight['end_time']
-                else:
-                    end_time = start_time + highlight['duration']
+                event_time = highlight['start_time']
                 
-                # Determine padding offsets dynamically based on event triggers
-                current_start_offset = start_offset
-                current_end_offset = end_offset
-                
+                # Determine event-specific pre-event padding based on triggers
                 triggers = highlight.get('triggers', [])
                 has_wicket = any("Wicket" in t or "Stumping" in t or "Dismissal" in t for t in triggers)
                 has_boundary = any("Boundary" in t for t in triggers)
                 
                 if has_wicket:
-                    current_start_offset = max(start_offset, 16.0)
-                    current_end_offset = max(end_offset, 7.0)
+                    pre_padding = 27.0
                 elif has_boundary:
-                    current_start_offset = max(start_offset, 13.0)
-                    current_end_offset = max(end_offset, 5.0)
+                    pre_padding = 20.0
+                else:
+                    pre_padding = 15.0
+                    
+                post_padding = 8.0
                 
-                # Apply offsets
-                start_time = max(0.0, start_time - current_start_offset)
-                end_time = min(video_duration, end_time + current_end_offset)
-                expanded_segments.append((start_time, end_time))
+                # Apply padding (event duration is 5s)
+                start_time = max(0.0, event_time - pre_padding)
+                end_time = min(video_duration, event_time + 5.0 + post_padding)
+                
+                raw_windows.append({
+                    'event_time': event_time,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'highlight': highlight
+                })
+                
+            # Sort windows by event_time
+            raw_windows.sort(key=lambda x: x['event_time'])
             
-            # Sort segments by start time
-            expanded_segments.sort(key=lambda x: x[0])
-            
-            # Merge overlapping segments
-            merged_segments = []
-            if expanded_segments:
-                current_start, current_end = expanded_segments[0]
-                for next_start, next_end in expanded_segments[1:]:
-                    if next_start <= current_end:
-                        # Overlap detected, merge them
-                        current_end = max(current_end, next_end)
-                    else:
-                        # No overlap, push current and start new window
-                        merged_segments.append((current_start, current_end))
-                        current_start, current_end = next_start, next_end
-                merged_segments.append((current_start, current_end))
+            # Group events that occur very close to each other (<= 10.0 seconds) into a single play/segment
+            grouped_segments = []
+            if raw_windows:
+                i = 0
+                while i < len(raw_windows):
+                    current = raw_windows[i]
+                    j = i + 1
+                    merged_start = current['start_time']
+                    merged_end = current['end_time']
+                    merged_events = [current]
+                    
+                    while j < len(raw_windows):
+                        next_win = raw_windows[j]
+                        event_gap = next_win['event_time'] - merged_events[-1]['event_time']
+                        
+                        if event_gap <= 10.0:
+                            # Part of the same play/delivery, merge them
+                            merged_end = max(merged_end, next_win['end_time'])
+                            merged_events.append(next_win)
+                            j += 1
+                        else:
+                            # Unrelated play, do not merge
+                            break
+                            
+                    grouped_segments.append({
+                        'events': merged_events,
+                        'start_time': merged_start,
+                        'end_time': merged_end
+                    })
+                    i = j
+                    
+            # Resolve boundary overlaps between consecutive unrelated segments by splitting the difference
+            for idx in range(len(grouped_segments) - 1):
+                curr_seg = grouped_segments[idx]
+                next_seg = grouped_segments[idx + 1]
+                
+                if curr_seg['end_time'] > next_seg['start_time']:
+                    # Calculate midpoint between the event peaks
+                    last_event_time = curr_seg['events'][-1]['event_time']
+                    first_event_time = next_seg['events'][0]['event_time']
+                    midpoint = (last_event_time + first_event_time) / 2.0
+                    
+                    # Force transition boundary cut at the midpoint to prevent overlaps or double plays
+                    curr_seg['end_time'] = midpoint
+                    next_seg['start_time'] = midpoint
+                    
+            # Extract final start and end times for compilation
+            merged_segments = [(seg['start_time'], seg['end_time']) for seg in grouped_segments]
 
             print(f"DEBUG: Merged {len(highlights)} segments into {len(merged_segments)} continuous highlight clips.")
             
@@ -753,15 +789,9 @@ class SportsHighlightGenerator:
             # Calculate highlight scores
             highlights = self.calculate_highlight_scores(motion_scores, movement_scores, audio_events, timestamps, sensitivity, sport_type, times, rms, spectral_centroid)
             
-            # Limit total duration
-            total_duration = 0
-            filtered_highlights = []
-            for highlight in highlights:
-                if total_duration + highlight['duration'] <= max_duration:
-                    filtered_highlights.append(highlight)
-                    total_duration += highlight['duration']
-                else:
-                    break
+            # Remove total duration constraints to include all key plays
+            filtered_highlights = highlights
+            total_duration = sum(h['duration'] for h in highlights) if highlights else 0
             
             # Sort both custom and best lists chronologically by start_time
             filtered_highlights.sort(key=lambda x: x['start_time'])
@@ -779,7 +809,17 @@ class SportsHighlightGenerator:
             best_video_path = None
             if highlights:
                 best_video_path = os.path.join(OUTPUT_FOLDER, f"best_highlights_{uuid.uuid4().hex}.mp4")
-                compilation_success = self.compile_highlight_video(video_path, highlights, best_video_path, sport_type)
+                import shutil
+                if custom_video_path and os.path.exists(custom_video_path) and filtered_highlights == highlights:
+                    try:
+                        shutil.copy2(custom_video_path, best_video_path)
+                        compilation_success = True
+                    except Exception as copy_err:
+                        print(f"Warning: could not copy highlight video: {copy_err}")
+                        compilation_success = self.compile_highlight_video(video_path, highlights, best_video_path, sport_type)
+                else:
+                    compilation_success = self.compile_highlight_video(video_path, highlights, best_video_path, sport_type)
+                
                 if not compilation_success:
                     best_video_path = None
             
