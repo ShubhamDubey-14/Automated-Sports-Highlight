@@ -1399,64 +1399,31 @@
                     <div id="compiledVideoSection" class="glass-effect rounded-2xl shadow-2xl p-8 hidden section-fade-in card-popup">
                         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                             <span class="text-2xl">🎬</span>
-                            Compiled Highlight Videos
+                            Ultimate Highlights Compilation
                         </h2>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="max-w-4xl mx-auto">
                             <!-- Ultimate Highlight (Best Moments) -->
                             <div class="bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-2xl p-6 border border-indigo-100 flex flex-col justify-between">
                                 <div>
-                                    <h3 class="text-lg font-bold text-indigo-950 mb-3 flex items-center gap-2">
-                                        <span class="text-base">🏆</span>
-                                        Ultimate Highlight (Best Moments)
-                                    </h3>
-                                    <div class="video-preview-container rounded-xl aspect-video mb-4 overflow-hidden bg-black">
+                                    <div class="video-preview-container rounded-xl aspect-video mb-4 overflow-hidden bg-black shadow-lg">
                                         <video id="bestCompiledVideo" controls class="w-full h-full" preload="metadata">
                                             Your browser does not support the video tag.
                                         </video>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="text-xs text-gray-600">
-                                        <span class="font-semibold">Duration:</span> <span id="bestCompiledDuration">0:00</span>
-                                        <span class="mx-1.5">•</span>
-                                        <span class="font-semibold">Clips:</span> <span id="bestCompiledCount">0</span>
+                                <div class="flex items-center justify-between mt-3">
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-semibold">Duration:</span> <span id="bestCompiledDuration" class="font-bold text-indigo-600">0:00</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="font-semibold">Key Moments:</span> <span id="bestCompiledCount" class="font-bold text-indigo-600">0</span>
                                     </div>
                                     <button 
                                         id="downloadBestCompiledBtn" 
-                                        class="btn-3d-enhanced btn-3d-indigo text-white text-xs px-4 py-3 rounded-xl font-bold flex items-center gap-2"
+                                        class="btn-3d-enhanced btn-3d-indigo text-white text-sm px-6 py-3 rounded-xl font-bold flex items-center gap-2"
                                     >
                                         <span>💾</span>
-                                        Download Best
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Custom Highlight (Slider Limit) -->
-                            <div class="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl p-6 border border-emerald-100 flex flex-col justify-between">
-                                <div>
-                                    <h3 class="text-lg font-bold text-emerald-950 mb-3 flex items-center gap-2">
-                                        <span class="text-base">⚙️</span>
-                                        Custom Highlight (Slider Limit)
-                                    </h3>
-                                    <div class="video-preview-container rounded-xl aspect-video mb-4 overflow-hidden bg-black">
-                                        <video id="compiledVideo" controls class="w-full h-full" preload="metadata">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="text-xs text-gray-600">
-                                        <span class="font-semibold">Duration:</span> <span id="compiledDuration">0:00</span>
-                                        <span class="mx-1.5">•</span>
-                                        <span class="font-semibold">Clips:</span> <span id="compiledHighlightCount">0</span>
-                                    </div>
-                                    <button 
-                                        id="downloadCompiledBtn" 
-                                        class="btn-3d-enhanced btn-3d-green text-white text-xs px-4 py-3 rounded-xl font-bold flex items-center gap-2"
-                                    >
-                                        <span>💾</span>
-                                        Download Custom
+                                        Download Full Highlights
                                     </button>
                                 </div>
                             </div>
@@ -2274,14 +2241,15 @@
         function showCompiledVideo(results) {
             const compiledVideoSection = document.getElementById('compiledVideoSection');
             
-            // 1. Ultimate Highlight (Best Moments)
             const bestVideo = document.getElementById('bestCompiledVideo');
             const bestDuration = document.getElementById('bestCompiledDuration');
             const bestCount = document.getElementById('bestCompiledCount');
             const downloadBestBtn = document.getElementById('downloadBestCompiledBtn');
             
-            if (results.best_highlight_video_path) {
-                const bestFilename = results.best_highlight_video_path.split('/').pop().split('\\').pop();
+            const highlightPath = results.best_highlight_video_path || results.highlight_video_path;
+            
+            if (highlightPath) {
+                const bestFilename = highlightPath.split('/').pop().split('\\').pop();
                 currentHighlightFilename = bestFilename; // Set global downloadBtn target to Best highlights
                 
                 // Show download button in preview section
@@ -2290,47 +2258,19 @@
                 bestVideo.src = `${API_BASE}/api/stream-highlights/${bestFilename}`;
                 bestVideo.type = 'video/mp4';
                 
-                bestDuration.textContent = formatTime(results.best_total_duration || 0);
-                bestCount.textContent = results.best_highlights_count || 0;
+                bestDuration.textContent = formatTime(results.best_total_duration || results.total_duration || 0);
+                bestCount.textContent = results.best_highlights_count || results.total_highlights || 0;
                 
                 downloadBestBtn.onclick = () => {
                     const downloadUrl = `${API_BASE}/api/download-highlights/${bestFilename}`;
                     const link = document.createElement('a');
                     link.href = downloadUrl;
-                    link.download = `best_highlights_${bestFilename}`;
+                    link.download = `highlights_${bestFilename}`;
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                 };
-            }
-            
-            // 2. Custom Highlight (Slider Limit)
-            const compiledVideo = document.getElementById('compiledVideo');
-            const compiledDuration = document.getElementById('compiledDuration');
-            const compiledHighlightCount = document.getElementById('compiledHighlightCount');
-            const downloadCompiledBtn = document.getElementById('downloadCompiledBtn');
-            
-            if (results.highlight_video_path) {
-                const filename = results.highlight_video_path.split('/').pop().split('\\').pop();
                 
-                compiledVideo.src = `${API_BASE}/api/stream-highlights/${filename}`;
-                compiledVideo.type = 'video/mp4';
-                
-                compiledDuration.textContent = formatTime(results.total_duration || 0);
-                compiledHighlightCount.textContent = results.total_highlights || 0;
-                
-                downloadCompiledBtn.onclick = () => {
-                    const downloadUrl = `${API_BASE}/api/download-highlights/${filename}`;
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = `custom_highlights_${filename}`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                };
-            }
-            
-            if (results.best_highlight_video_path || results.highlight_video_path) {
                 compiledVideoSection.classList.remove('hidden');
                 
                 // Smooth scroll to compiled video section
