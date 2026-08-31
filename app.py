@@ -1001,22 +1001,22 @@ def convert_numpy(obj):
 @app.route('/api/generate-highlights', methods=['POST'])
 def generate_highlights():
     """Generate highlights from uploaded video"""
-    data = request.get_json()
-    
-    if not data or 'filename' not in data:
-        return jsonify({'error': 'No filename provided'}), 400
-    
-    filename = data['filename']
-    sport_type = data.get('sport_type', 'general')
-    sensitivity = data.get('sensitivity', 'medium')
-    max_duration = data.get('max_duration', 30)
-    
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    
-    if not os.path.exists(filepath):
-        return jsonify({'error': 'Video file not found'}), 404
-    
     try:
+        data = request.get_json(force=True, silent=True)
+        
+        if not data or 'filename' not in data:
+            return jsonify({'error': 'No filename provided'}), 400
+        
+        filename = data['filename']
+        sport_type = data.get('sport_type', 'general')
+        sensitivity = data.get('sensitivity', 'medium')
+        max_duration = data.get('max_duration', 3600)
+        
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': f'Video file not found: {filename}'}), 404
+        
         results = generator.generate_highlights(filepath, sport_type, sensitivity, max_duration)
         
         # Return converted results with numpy types mapped to native python types
