@@ -1027,7 +1027,7 @@
                     <span class="text-xl font-bold text-gray-800">AI Sports Highlights</span>
                 </div>
                 
-                <!-- Theme Toggle & User Menu -->
+                <!-- Theme Toggle -->
                 <div class="flex items-center gap-4">
                     <!-- Dynamic 3D Theme Switcher -->
                     <button 
@@ -1044,47 +1044,7 @@
                             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
                         </svg>
                     </button>
-                    
-                    <div id="userMenu" class="flex items-center gap-4">
-                        <!-- Not Logged In -->
-                        <div id="notLoggedIn" class="flex items-center gap-3">
-                            <button onclick="openAuthModal()" class="btn-3d-enhanced btn-3d-blue text-white px-6 py-2.5 rounded-xl font-bold text-sm">
-                                Sign In
-                            </button>
-                        </div>
-                    
-                    <!-- Logged In -->
-                    <div id="loggedIn" class="hidden flex items-center gap-4">
-                        <button onclick="showHistory()" class="text-gray-600 hover:text-blue-600 font-medium text-sm flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            History
-                        </button>
-                        <div class="relative">
-                            <button onclick="toggleUserDropdown()" class="flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium text-sm">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                                    </svg>
-                                </div>
-                                <span id="usernameDisplay"></span>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
-                            </button>
-                            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                                <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                                    </svg>
-                                    Sign Out
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
-            </div>
         </div>
     </nav>
 
@@ -1655,12 +1615,12 @@
             const usernameDisplay = document.getElementById('usernameDisplay');
 
             if (currentUser) {
-                notLoggedIn.classList.add('hidden');
-                loggedIn.classList.remove('hidden');
-                usernameDisplay.textContent = currentUser.username;
+                if (notLoggedIn) notLoggedIn.classList.add('hidden');
+                if (loggedIn) loggedIn.classList.remove('hidden');
+                if (usernameDisplay) usernameDisplay.textContent = currentUser.username;
             } else {
-                notLoggedIn.classList.remove('hidden');
-                loggedIn.classList.add('hidden');
+                if (notLoggedIn) notLoggedIn.classList.remove('hidden');
+                if (loggedIn) loggedIn.classList.add('hidden');
             }
         }
 
