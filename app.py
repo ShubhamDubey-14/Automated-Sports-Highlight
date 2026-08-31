@@ -26,6 +26,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sports_highlights.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 * 1024  # 16 GB max upload limit
 
 CORS(app, supports_credentials=True)
 db = SQLAlchemy(app)
@@ -1081,5 +1082,5 @@ if __name__ == '__main__':
     # Use waitress.serve() for production deployment (Windows friendly)
     print("--- Starting production server with Waitress ---")
     # Setting host='0.0.0.0' makes it externally accessible on your network
-    # For production, you typically set debug=False, but leaving it True for now to catch any initial errors
-    serve(app, host='0.0.0.0', port=5000, channel_timeout=600)
+    # max_request_body_size allows uploading large video files up to 16 GB
+    serve(app, host='0.0.0.0', port=5000, channel_timeout=1200, max_request_body_size=17179869184)
