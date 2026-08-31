@@ -985,6 +985,19 @@ def upload_video():
     
     return jsonify({'error': 'Invalid file type'}), 400
 
+def convert_numpy(obj):
+    if isinstance(obj, np.generic):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy(v) for v in obj)
+    return obj
+
 @app.route('/api/generate-highlights', methods=['POST'])
 def generate_highlights():
     """Generate highlights from uploaded video"""
@@ -1006,17 +1019,8 @@ def generate_highlights():
     try:
         results = generator.generate_highlights(filepath, sport_type, sensitivity, max_duration)
         
-        # Save to user history - Skip this part since login is not required
-        # We'll just return the results without saving to user history
-        if 'error' not in results:
-            highlight_filename = None
-            if results.get('highlight_video_path'):
-                highlight_filename = os.path.basename(results['highlight_video_path'])
-            
-            # Skip saving to database since we don't have current_user
-            # This avoids the error when no user is logged in
-        
-        return jsonify(results)
+        # Return converted results with numpy types mapped to native python types
+        return jsonify(convert_numpy(results))
     
     except Exception as e:
         import traceback
