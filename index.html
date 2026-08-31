@@ -1563,6 +1563,7 @@
     </div>
 
     <script>
+        const API_BASE = (window.location.protocol.startsWith('http')) ? '' : 'http://127.0.0.1:5000';
         let uploadedVideo = null;
         let currentSensitivity = 'medium';
         let currentProgress = 0;
@@ -1609,7 +1610,7 @@
             const password = document.getElementById('loginPassword').value;
 
             try {
-                const response = await fetch('http://localhost:5000/api/login', {
+                const response = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1641,7 +1642,7 @@
             const password = document.getElementById('registerPassword').value;
 
             try {
-                const response = await fetch('http://localhost:5000/api/register', {
+                const response = await fetch(`${API_BASE}/api/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1668,7 +1669,7 @@
         // Logout Function
         async function logout() {
             try {
-                await fetch('http://localhost:5000/api/logout', {
+                await fetch(`${API_BASE}/api/logout`, {
                     method: 'POST',
                     credentials: 'include'
                 });
@@ -1708,7 +1709,7 @@
 
         async function loadUserHistory() {
             try {
-                const response = await fetch('http://localhost:5000/api/history', {
+                const response = await fetch(`${API_BASE}/api/history`, {
                     credentials: 'include'
                 });
 
@@ -1781,7 +1782,7 @@
         }
 
         function playHistoryVideo(filename) {
-            const videoUrl = `http://localhost:5000/api/stream-highlights/${filename}`;
+            const videoUrl = `${API_BASE}/api/stream-highlights/${filename}`;
             // You can implement a video player modal here or redirect to the video
             window.open(videoUrl, '_blank');
         }
@@ -1808,7 +1809,7 @@
         // Check if user is already logged in on page load
         async function checkAuthStatus() {
             try {
-                const response = await fetch('http://localhost:5000/api/user', {
+                const response = await fetch(`${API_BASE}/api/user`, {
                     credentials: 'include'
                 });
                 
@@ -1956,7 +1957,7 @@
                 const formData = new FormData();
                 formData.append('video', uploadedVideo.file);
 
-                const uploadResponse = await fetch('http://localhost:5000/api/upload', {
+                const uploadResponse = await fetch(`${API_BASE}/api/upload`, {
                     method: 'POST',
                     body: formData
                 });
@@ -1978,7 +1979,7 @@
 
                 let generateResponse;
                 try {
-                    generateResponse = await fetch('http://localhost:5000/api/generate-highlights', {
+                    generateResponse = await fetch(`${API_BASE}/api/generate-highlights`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2286,14 +2287,14 @@
                 // Show download button in preview section
                 document.getElementById('downloadBtn').classList.remove('hidden');
                 
-                bestVideo.src = `http://localhost:5000/api/stream-highlights/${bestFilename}`;
+                bestVideo.src = `${API_BASE}/api/stream-highlights/${bestFilename}`;
                 bestVideo.type = 'video/mp4';
                 
                 bestDuration.textContent = formatTime(results.best_total_duration || 0);
                 bestCount.textContent = results.best_highlights_count || 0;
                 
                 downloadBestBtn.onclick = () => {
-                    const downloadUrl = `http://localhost:5000/api/download-highlights/${bestFilename}`;
+                    const downloadUrl = `${API_BASE}/api/download-highlights/${bestFilename}`;
                     const link = document.createElement('a');
                     link.href = downloadUrl;
                     link.download = `best_highlights_${bestFilename}`;
@@ -2312,14 +2313,14 @@
             if (results.highlight_video_path) {
                 const filename = results.highlight_video_path.split('/').pop().split('\\').pop();
                 
-                compiledVideo.src = `http://localhost:5000/api/stream-highlights/${filename}`;
+                compiledVideo.src = `${API_BASE}/api/stream-highlights/${filename}`;
                 compiledVideo.type = 'video/mp4';
                 
                 compiledDuration.textContent = formatTime(results.total_duration || 0);
                 compiledHighlightCount.textContent = results.total_highlights || 0;
                 
                 downloadCompiledBtn.onclick = () => {
-                    const downloadUrl = `http://localhost:5000/api/download-highlights/${filename}`;
+                    const downloadUrl = `${API_BASE}/api/download-highlights/${filename}`;
                     const link = document.createElement('a');
                     link.href = downloadUrl;
                     link.download = `custom_highlights_${filename}`;
@@ -2345,7 +2346,7 @@
         // Download functionality
         document.getElementById('downloadBtn').addEventListener('click', () => {
             if (currentHighlightFilename) {
-                const downloadUrl = `http://localhost:5000/api/download-highlights/${currentHighlightFilename}`;
+                const downloadUrl = `${API_BASE}/api/download-highlights/${currentHighlightFilename}`;
                 const link = document.createElement('a');
                 link.href = downloadUrl;
                 link.download = `highlights_${currentHighlightFilename}`;
