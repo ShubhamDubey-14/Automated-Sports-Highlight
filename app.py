@@ -1083,8 +1083,8 @@ if __name__ == '__main__':
         # This will create the database tables if they don't exist
         db.create_all()
     
-    # Use waitress.serve() for production deployment (Windows friendly)
-    print("--- Starting production server with Waitress ---")
+    port = int(os.environ.get("PORT", 5050))
+    print(f"--- Starting production server on port {port} with Waitress ---")
     # Setting host='0.0.0.0' makes it externally accessible on your network
     # max_request_body_size allows uploading large video files up to 16 GB
-    serve(app, host='0.0.0.0', port=5000, channel_timeout=1200, max_request_body_size=17179869184)
+    serve(app, host='0.0.0.0', port=port, channel_timeout=1200, max_request_body_size=17179869184)

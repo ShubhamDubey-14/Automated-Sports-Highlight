@@ -17,6 +17,6 @@ echo  Your Public HTTPS link will appear below (look for trycloudflare.com)
 echo  Share this link with anyone or open it in any browser/device!
 echo ================================================================
 echo.
-npx.cmd cloudflared tunnel --url http://127.0.0.1:5000
+npx.cmd cloudflared tunnel --url http://127.0.0.1:5050
 
 pause
